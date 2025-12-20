@@ -1,0 +1,24 @@
+[project]
+name = "requirement_tracker"
+version = "0.1.0"
+description = "requirement-tracker using crewAI"
+authors = [{ name = "Your Name", email = "you@example.com" }]
+requires-python = ">=3.10,<3.14"
+dependencies = [
+    "crewai[tools]==1.6.1"
+]
+
+[project.scripts]
+requirement_tracker = "requirement_tracker.main:run"
+run_crew = "requirement_tracker.main:run"
+train = "requirement_tracker.main:train"
+replay = "requirement_tracker.main:replay"
+test = "requirement_tracker.main:test"
+run_with_trigger = "requirement_tracker.main:run_with_trigger"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.crewai]
+type = "crew"
