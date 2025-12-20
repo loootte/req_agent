@@ -11,7 +11,7 @@ load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '..', '.en
 # 添加项目根目录到Python路径
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 
-from src.requirement_tracker.crew import requirement_crew, run_crew
+from src.requirement_tracker.crew import run_crew
 
 # 导入重构后的配置函数
 from src.requirement_tracker.config_utils import load_env_vars, load_custom_llms

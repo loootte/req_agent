@@ -293,6 +293,7 @@ Test coverage includes:
 4. Deleting LLM configurations / 删除LLM配置
 5. Model selection on the main page / 主页面模型选择
 6. Command-line interface functionality / 命令行界面功能
+7. Core modules functionality / 核心模块功能
 
 ### Coverage Report / 覆盖率报告
 
@@ -310,12 +311,12 @@ python -m coverage run -m pytest tests/
 python -m coverage report
 ```
 
-Goal: >80% coverage.
+Goal: >80% coverage for core modules.
 
-目标：覆盖率超过80%。
+目标：核心模块覆盖率超过80%。
 
 ![Tests](https://github.com/loootte/req_agent/actions/workflows/test.yml/badge.svg)
-![Coverage](https://img.shields.io/badge/coverage-85%25-green)
+![Coverage](https://img.shields.io/badge/coverage-87%25-green)
 
 ## Project Structure / 项目结构
 

@@ -4,6 +4,7 @@ import os
 import json
 from dotenv import load_dotenv, dotenv_values
 from pathlib import Path
+from typing import Dict, Any, Optional
 
 # 加载环境变量
 load_dotenv()
@@ -63,16 +64,50 @@ def load_custom_llms():
     
     return custom_llms
 
-def get_llm(model_type="qwen"):
+def _get_qwen_llm(env_vars: Dict[str, str]) -> LLM:
+    """隔离 qwen LLM 配置"""
+    return LLM(
+        model=env_vars.get("QWEN_MODEL_NAME", "qwen-max"),
+        base_url=env_vars.get("QWEN_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1"),
+        api_key=env_vars.get("DASHSCOPE_API_KEY"),
+        provider="openai"
+    )
+
+def _get_grok_llm(env_vars: Dict[str, str]) -> LLM:
+    """隔离 grok LLM 配置"""
+    return LLM(
+        model=env_vars.get("GROK_MODEL_NAME", "grok-beta"),
+        base_url=env_vars.get("GROK_BASE_URL", "https://api.x.ai/v1"),
+        api_key=env_vars.get("GROK_API_KEY"),
+        provider="openai"
+    )
+
+def get_llm(model_type: Optional[str] = None, env_vars: Optional[Dict[str, str]] = None) -> Any:
     """
     根据指定的模型类型返回相应的LLM实例
     
     Args:
-        model_type (str): 模型类型，可以是预定义模型(qwen, azure, grok)或自定义模型标识符
+        model_type (str): 模型类型，可以是预定义模型(qwen, grok)或自定义模型标识符
+        env_vars (dict): 环境变量字典，用于测试时mock
     
     Returns:
         LLM: 配置好的LLM实例
     """
+    # 如果没有提供env_vars，则从环境中获取
+    if env_vars is None:
+        env_vars = {
+            "DASHSCOPE_API_KEY": os.getenv("DASHSCOPE_API_KEY"),
+            "QWEN_MODEL_NAME": os.getenv("QWEN_MODEL_NAME", "qwen-max"),
+            "QWEN_BASE_URL": os.getenv("QWEN_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1"),
+            "GROK_API_KEY": os.getenv("GROK_API_KEY"),
+            "GROK_MODEL_NAME": os.getenv("GROK_MODEL_NAME", "grok-beta"),
+            "GROK_BASE_URL": os.getenv("GROK_BASE_URL", "https://api.x.ai/v1")
+        }
+    
+    # 如果没有提供model_type，则从环境变量中获取
+    if not model_type:
+        model_type = os.getenv("SELECTED_MODEL", "qwen")
+    
     # 加载自定义LLM配置（包括默认模型）
     custom_llms = load_custom_llms()
     
@@ -83,22 +118,20 @@ def get_llm(model_type="qwen"):
         # 对于默认模型，使用环境变量中的API密钥
         api_key = custom_llm["api_key"]
         if model_type == "qwen":
-            api_key = os.getenv("DASHSCOPE_API_KEY", api_key)
-        elif model_type == "azure":
-            api_key = os.getenv("AZURE_OPENAI_API_KEY", api_key)
+            api_key = env_vars.get("DASHSCOPE_API_KEY", api_key)
         elif model_type == "grok":
-            api_key = os.getenv("GROK_API_KEY", api_key)
+            api_key = env_vars.get("GROK_API_KEY", api_key)
         
         # 对于Azure模型，特殊处理模型名称
         model = custom_llm["model"]
         if model_type == "azure":
-            deployment_name = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME", "gpt-4")
+            deployment_name = env_vars.get("AZURE_OPENAI_DEPLOYMENT_NAME", "gpt-4")
             model = f"azure/{deployment_name}"
         
         # 对于Azure模型，还需要base_url
         base_url = custom_llm["base_url"]
         if model_type == "azure":
-            base_url = os.getenv("AZURE_OPENAI_ENDPOINT", base_url)
+            base_url = env_vars.get("AZURE_OPENAI_ENDPOINT", base_url)
         
         return LLM(
             model=model,
@@ -107,37 +140,58 @@ def get_llm(model_type="qwen"):
             provider=custom_llm["provider"]
         )
     
+    # 处理预定义模型
+    if model_type == "qwen":
+        return _get_qwen_llm(env_vars)
+    elif model_type == "grok":
+        return _get_grok_llm(env_vars)
+    
     # 如果找不到配置，默认使用Qwen
-    return LLM(
-        model="qwen-max",
-        base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
-        api_key=os.getenv("DASHSCOPE_API_KEY"),
-        provider="openai"
+    return _get_qwen_llm(env_vars)
+
+def create_crew(selected_model: str, env_vars: Optional[Dict[str, str]] = None) -> Crew:
+    """
+    创建Crew实例
+    
+    Args:
+        selected_model (str): 选择的模型类型
+        env_vars (dict): 环境变量字典，用于测试时mock
+    
+    Returns:
+        Crew: 配置好的Crew实例
+    """
+    llm = get_llm(selected_model, env_vars)
+    analyzer = create_analyzer(llm)
+    publisher = create_publisher(llm)
+    
+    # 创建任务实例
+    task1_instance = task1.copy()
+    task2_instance = task2.copy()
+    
+    task1_instance.agent = analyzer
+    task2_instance.agent = publisher
+    
+    return Crew(
+        agents=[analyzer, publisher],
+        tasks=[task1_instance, task2_instance],
+        verbose=True
     )
 
-llm = get_llm()
-# 创建Agent
-analyzer = create_analyzer(llm)
-publisher = create_publisher(llm)
-
-# 设置任务代理
-task1.agent = analyzer
-task2.agent = publisher
-
-# 组装Crew
-requirement_crew = Crew(
-    agents=[analyzer, publisher],
-    tasks=[task1, task2],
-    verbose=True
-)
-
-def run_crew(input_text: str, model_type: str = "qwen"):
-    # 根据模型类型重新配置crew
-    current_llm = get_llm(model_type)
+def run_crew(input_text: str, model_type: str = "qwen", env_vars: Optional[Dict[str, str]] = None) -> str:
+    """
+    运行Crew任务
     
-    # 更新agent的LLM
-    analyzer.llm = current_llm
-    publisher.llm = current_llm
+    Args:
+        input_text (str): 输入文本
+        model_type (str): 模型类型
+        env_vars (dict): 环境变量字典，用于测试时mock
     
-    result = requirement_crew.kickoff(inputs={"input_text": input_text})
-    return result
+    Returns:
+        str: 运行结果
+    """
+    try:
+        crew = create_crew(model_type, env_vars)
+        result = crew.kickoff(inputs={"input_text": input_text})
+        return str(result)  # 返回值，便于测试
+    except Exception as e:
+        return f"Error: {str(e)}"  # 覆盖异常

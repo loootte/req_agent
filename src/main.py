@@ -4,7 +4,7 @@ import argparse
 import json
 from dotenv import load_dotenv, dotenv_values
 from pathlib import Path
-from src.requirement_tracker.crew import requirement_crew, run_crew  # ← 请根据你的包名修改，例如 src.requirement_crew.crew
+from src.requirement_tracker.crew import run_crew  # ← 请根据你的包名修改，例如 src.requirement_crew.crew
 
 # 如果你把 crew 定义为一个函数返回 Crew，也可以用下面方式
 # from src.your_crew.crew import create_requirement_crew
