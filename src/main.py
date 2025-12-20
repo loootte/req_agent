@@ -1,7 +1,9 @@
 # main.py
 import os
 import argparse
-from dotenv import load_dotenv
+import json
+from dotenv import load_dotenv, dotenv_values
+from pathlib import Path
 from src.requirement_tracker.crew import requirement_crew, run_crew  # ← 请根据你的包名修改，例如 src.requirement_crew.crew
 
 # 如果你把 crew 定义为一个函数返回 Crew，也可以用下面方式
@@ -18,8 +20,11 @@ AZURE_OPENAI_API_KEY=your-azure-openai-api-key
 AZURE_OPENAI_ENDPOINT=https://your-resource-name.openai.azure.com/
 AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4
 
-# xAI Grok
+# xAI Grok API 密钥
 GROK_API_KEY=your-xai-api-key
+
+# LLM模型配置
+LLM_CONFIG=[{"key": "qwen", "name": "通义千问 (Qwen)", "model": "qwen-max", "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1", "api_key": "", "provider": "openai", "editable": false}, {"key": "azure", "name": "Azure OpenAI (Microsoft Copilot基础)", "model": "azure/gpt-4", "base_url": "", "api_key": "", "provider": "azure", "editable": false}, {"key": "grok", "name": "Grok (xAI)", "model": "grok-beta", "base_url": "https://api.x.ai/v1", "api_key": "", "provider": "openai", "editable": false}]
 
 # Confluence
 CONFLUENCE_URL=https://your-company.atlassian.net
@@ -37,29 +42,90 @@ ADO_PROJECT=YourProjectName
 # JIRA_TOKEN=your-jira-api-token
 # JIRA_PROJECT=PROJ
 """
+
+def load_env_vars():
+    """加载环境变量"""
+    env_path = Path(__file__).parent.parent / ".env"
+    if env_path.exists():
+        try:
+            return dotenv_values(env_path)
+        except UnicodeDecodeError:
+            # 如果UTF-8解码失败，尝试其他编码
+            try:
+                # 尝试使用gbk编码（常见于中文Windows系统）
+                with open(env_path, 'r', encoding='gbk') as f:
+                    content = f.read()
+                # 将内容写回为UTF-8编码
+                with open(env_path, 'w', encoding='utf-8') as f:
+                    f.write(content)
+                # 重新加载
+                return dotenv_values(env_path)
+            except:
+                # 最后尝试使用latin-1编码
+                with open(env_path, 'r', encoding='latin-1') as f:
+                    content = f.read()
+                # 将内容写回为UTF-8编码
+                with open(env_path, 'w', encoding='utf-8') as f:
+                    f.write(content)
+                # 重新加载
+                return dotenv_values(env_path)
+    return {}
+
+def load_custom_llms():
+    """加载自定义LLM配置"""
+    env_vars = load_env_vars()
+    
+    # 从LLM_CONFIG环境变量加载所有模型配置
+    if "LLM_CONFIG" in env_vars:
+        try:
+            llm_list = json.loads(env_vars["LLM_CONFIG"])
+            return {llm["key"]: llm for llm in llm_list}
+        except json.JSONDecodeError:
+            pass
+    
+    # 如果没有LLM_CONFIG或解析失败，从旧格式加载
+    custom_llms = {}
+    for key in env_vars:
+        if key.startswith("LLM_CONFIG_"):
+            model_key = key[len("LLM_CONFIG_"):].lower()
+            try:
+                custom_llms[model_key] = json.loads(env_vars[key])
+            except json.JSONDecodeError:
+                pass
+    
+    return custom_llms
+
+# 加载环境变量
 load_dotenv()
 
 def main():
     parser = argparse.ArgumentParser(description='需求文档自动化系统')
-    parser.add_argument('--model', choices=['qwen', 'azure', 'grok'], default='qwen', 
-                       help='选择使用的AI模型: qwen(通义千问)、azure(Azure OpenAI) 或 grok(xAI)')
+    parser.add_argument('--model', default='qwen', 
+                       help='选择使用的AI模型: qwen(通义千问)、azure(Azure OpenAI)、grok(xAI) 或自定义模型标识符')
     args = parser.parse_args()
     
     model_type = args.model
+    custom_llms = load_custom_llms()
     
     # 检查所选模型的必要环境变量
-    if model_type == "qwen":
-        required_model_vars = ["DASHSCOPE_API_KEY"]
-        model_name = "通义千问(Qwen)"
-    elif model_type == "azure":
-        required_model_vars = ["AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT"]
-        model_name = "Azure OpenAI (Microsoft Copilot基础)"
-    elif model_type == "grok":
-        required_model_vars = ["GROK_API_KEY"]
-        model_name = "Grok (xAI)"
+    if model_type in custom_llms:
+        llm_config = custom_llms[model_type]
+        if model_type == "qwen":
+            required_model_vars = ["DASHSCOPE_API_KEY"]
+            model_name = "通义千问(Qwen)"
+        elif model_type == "azure":
+            required_model_vars = ["AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT"]
+            model_name = "Azure OpenAI (Microsoft Copilot基础)"
+        elif model_type == "grok":
+            required_model_vars = ["GROK_API_KEY"]
+            model_name = "Grok (xAI)"
+        else:
+            # 自定义模型
+            required_model_vars = []
+            model_name = f"自定义: {llm_config['name']}"
     else:
         required_model_vars = []
-        model_name = "未知模型"
+        model_name = f"未知模型 ({model_type})"
         
     missing_model_vars = [var for var in required_model_vars if not os.getenv(var)]
     if missing_model_vars:

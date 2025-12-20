@@ -10,6 +10,9 @@
 - 提供命令行界面和Web界面两种交互方式
 - 模拟显示将要创建的 Azure DevOps 工作项 ID 和 Confluence 页面链接
 - 支持多种AI模型：通义千问(Qwen)、Azure OpenAI (Microsoft Copilot基础) 和 Grok (xAI)
+- Web界面支持图形化配置LLM模型和API密钥
+- 支持添加、编辑和删除自定义LLM配置
+- 所有模型配置以结构化JSON格式存储在.env文件中
 
 ## 安装说明
 
@@ -35,9 +38,20 @@ uv pip install -r pyproject.toml
 
 ## 环境配置
 
-在使用前，需要配置相关环境变量。请在项目根目录下的 `.env` 文件中添加以下配置：
+在使用前，需要配置相关环境变量。您可以通过以下两种方式之一进行配置：
+
+### 方式一：使用 Web 界面配置（推荐）
+
+运行 Web 界面后，在左侧边栏选择「LLM 配置」页面，可以通过图形界面配置所有必要的 API 密钥和模型选项。
+
+### 方式二：直接编辑 .env 文件
+
+请在项目根目录下的 `.env` 文件中添加以下配置：
 
 ```env
+# 默认选择的模型 (qwen, azure, grok, 或自定义模型标识符)
+SELECTED_MODEL=qwen
+
 # 通义千问 API 密钥 (任选其一或两者都配置)
 DASHSCOPE_API_KEY=your-dashscope-api-key
 
@@ -48,6 +62,9 @@ AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4  # 或 gpt-3.5-turbo
 
 # xAI Grok API 密钥
 GROK_API_KEY=your-xai-api-key
+
+# LLM模型配置（所有模型配置存储在一个JSON数组中）
+LLM_CONFIG=[{"key": "qwen", "name": "通义千问 (Qwen)", "model": "qwen-max", "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1", "api_key": "", "provider": "openai", "editable": false}, {"key": "azure", "name": "Azure OpenAI (Microsoft Copilot基础)", "model": "azure/gpt-4", "base_url": "", "api_key": "", "provider": "azure", "editable": false}, {"key": "grok", "name": "Grok (xAI)", "model": "grok-beta", "base_url": "https://api.x.ai/v1", "api_key": "", "provider": "openai", "editable": false}]
 
 # Confluence 配置
 CONFLUENCE_URL=https://your-company.atlassian.net
@@ -91,6 +108,9 @@ python src/main.py --model azure
 
 # 使用 Grok 模型
 python src/main.py --model grok
+
+# 使用自定义模型 (需要先在配置中添加)
+python src/main.py --model your-custom-model-id
 ```
 
 ### Web界面
@@ -101,10 +121,40 @@ python src/main.py --model grok
 streamlit run src/requirement_tracker/webapp.py
 ```
 
-在浏览器中打开提供的地址，即可通过图形界面输入需求并查看结果。Web界面支持选择不同的AI模型：
-- 通义千问(Qwen)
-- Azure OpenAI (Microsoft Copilot基础)
-- Grok (xAI)
+在浏览器中打开提供的地址，即可通过图形界面输入需求并查看结果。Web界面具有以下功能：
+
+1. **主页** - 输入需求并选择要使用的AI模型
+2. **LLM 配置** - 图形化配置各种AI模型的API密钥和端点
+
+在主页中，您可以：
+- 查看当前配置的默认AI模型
+- 临时更换要使用的模型（包括自定义模型）
+- 输入需求描述并处理
+
+在配置页面中，您可以：
+- 设置默认使用的AI模型
+- 配置各个AI模型的API密钥和相关参数
+- 添加、编辑和删除自定义LLM配置
+- 查看当前各模型的配置状态
+
+#### 模型配置管理
+
+在「LLM 配置」页面中，所有模型（包括默认模型和自定义模型）都在统一界面中管理：
+
+1. **统一的配置存储**：
+   - 所有模型配置存储在单个LLM_CONFIG环境变量中
+   - 配置以JSON数组格式存储，每个模型占数组的一个元素
+   - 默认模型显示为锁定状态（不可删除）
+
+2. **默认模型**：
+   - 包括通义千问、Azure OpenAI、Grok
+   - 显示为锁定状态（不可删除）
+   - API密钥仍存储在传统环境变量中以保持兼容性
+
+3. **自定义模型**：
+   - 可以添加、编辑和删除
+   - 需要提供完整的配置信息（名称、模型标识、API端点、API密钥、提供商类型）
+   - 配置信息存储在LLM_CONFIG环境变量中
 
 ## 项目结构
 
@@ -115,7 +165,8 @@ src/
 │   ├── tasks.py       # 定义任务流程
 │   ├── tools.py       # 实现具体工具函数
 │   ├── crew.py        # 组装智能体团队
-│   └── webapp.py      # Web应用界面
+│   ├── webapp.py      # Web应用主界面
+│   └── config.py      # Web配置界面
 └── main.py            # 命令行程序入口点
 ```
 
