@@ -247,6 +247,48 @@ In the "LLM Configuration" page, all models (including default models and custom
    - 需要提供完整的配置信息（名称、模型标识、API端点、API密钥、提供商类型）
    - 配置信息存储在LLM_CONFIG环境变量中
 
+## Testing / 测试
+
+This project includes unit tests for core functionalities. Tests cover requirement document generation, LLM configuration management, and web interface features.
+
+项目包含针对核心功能的单元测试。测试涵盖了需求文档生成、LLM配置管理和Web界面功能。
+
+To run all tests:
+
+运行所有测试：
+
+```bash
+python tests/test_run_all.py
+```
+
+To run specific test suites:
+
+运行特定的测试套件：
+
+```bash
+# Test requirement document generation
+# 测试需求文档生成
+python tests/test_requirement_generation.py
+
+# Test LLM configuration management (add, modify, delete)
+# 测试LLM配置管理（添加、修改、删除）
+python tests/test_llm_config.py
+
+# Test web interface functionality
+# 测试Web界面功能
+python tests/test_web_interface.py
+```
+
+Test coverage includes:
+
+测试覆盖包括：
+
+1. Requirement document generation / 需求文档生成
+2. Adding LLM configurations / 添加LLM配置
+3. Modifying LLM configurations / 修改LLM配置
+4. Deleting LLM configurations / 删除LLM配置
+5. Model selection on the main page / 主页面模型选择
+
 ## Project Structure / 项目结构
 
 ```

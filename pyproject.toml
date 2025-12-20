@@ -1,33 +1,29 @@
 [project]
 name = "requirement_tracker"
 version = "0.1.0"
-description = "requirement-tracker using crewAI"
-authors = [{ name = "Alex Zhong", email = "tuya000000@gmail.com" }]
+description = "A multi-agent AI system that automatically transforms informal requirement descriptions into structured requirement documents."
+authors = [{name = "Your Name", email = "your.email@example.com"}]
+readme = "README.md"
 requires-python = ">=3.10,<3.14"
 dependencies = [
-    "crewai[tools]==1.6.1",
-    "streamlit>=1.27.0",
-    "python-dotenv>=0.19.0",
-    "langchain_openai>=0.1.0",
-    "openai>=1.0.0",
-    "langchain_dashscope>=0.1.8",
-    "litellm>=1.80.10",
-    "atlassian-python-api>=4.0.7",
-    "azure-devops>=7.1.0b4"
+    "crewai>=0.71.0,<1.0.0",
+    "python-dotenv>=1.0.0,<2.0.0",
+    "streamlit>=1.39.0,<2.0.0",
+    "langchain>=0.3.0,<1.0.0",
+    "langchain-openai>=0.2.0,<1.0.0",
+    "langchain-community>=0.3.0,<1.0.0",
+    "litellm>=1.47.0,<2.0.0",
+    "langchain-dashscope>=0.1.2,<1.0.0"
 ]
 
 [project.scripts]
-requirement_tracker = "requirement_tracker.main:run"
-run_crew = "requirement_tracker.main:run"
-train = "requirement_tracker.main:train"
-replay = "requirement_tracker.main:replay"
-test = "requirement_tracker.main:test"
-run_with_trigger = "requirement_tracker.main:run_with_trigger"
-webapp = "requirement_tracker.webapp:main"
+requirement_tracker = "src.main:main"
 
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["setuptools", "wheel"]
 
-[tool.crewai]
-type = "crew"
+[tool.uv]
+dev-dependencies = [
+    "pytest>=7.0,<8.0",
+    "pytest-mock>=3.0,<4.0"
+]
