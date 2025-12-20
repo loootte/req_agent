@@ -37,15 +37,20 @@ class ConfigManager:
         return False
 
     def save_all(self, selected_model: str) -> None:
+        # 确保默认模型始终包含在配置中
+        default_llms = get_default_llms()
+        merged_llms = default_llms.copy()
+        merged_llms.update(self.custom_llms)
+        
         # 保存自定义LLM配置到LLM_CONFIG环境变量
-        save_custom_llms(self.custom_llms)
+        save_custom_llms(merged_llms)
         
         configs_to_save = {
             "SELECTED_MODEL": selected_model,
         }
         
         # 保存默认模型的API密钥到各自的标准环境变量
-        for key, llm_config in self.custom_llms.items():
+        for key, llm_config in merged_llms.items():
             if key == "qwen":
                 qwen_key = llm_config.get("api_key", "")
                 if qwen_key:
@@ -68,7 +73,7 @@ class ConfigManager:
         
         # 保存自定义LLM配置到LLM_CONFIG环境变量（包含API密钥）
         llm_list = []
-        for key, config in self.custom_llms.items():
+        for key, config in merged_llms.items():
             config["key"] = key
             llm_list.append(config)
         configs_to_save["LLM_CONFIG"] = json.dumps(llm_list, ensure_ascii=False)

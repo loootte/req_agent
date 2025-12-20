@@ -14,7 +14,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 from src.requirement_tracker.crew import requirement_crew, run_crew
 
 # 导入重构后的配置函数
-from .config_utils import load_env_vars, load_custom_llms
+from src.requirement_tracker.config_utils import load_env_vars, load_custom_llms
 
 def main():
     st.set_page_config(

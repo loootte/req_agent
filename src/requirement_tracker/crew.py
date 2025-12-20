@@ -115,9 +115,7 @@ def get_llm(model_type="qwen"):
         provider="openai"
     )
 
-# 默认LLM配置
-llm = get_llm("qwen")
-
+llm = get_llm()
 # 创建Agent
 analyzer = create_analyzer(llm)
 publisher = create_publisher(llm)
