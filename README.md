@@ -9,6 +9,7 @@
 - 以带 Markdown 格式的文本形式输出最终文档
 - 提供命令行界面和Web界面两种交互方式
 - 模拟显示将要创建的 Azure DevOps 工作项 ID 和 Confluence 页面链接
+- 支持多种AI模型：通义千问(Qwen)、Azure OpenAI (Microsoft Copilot基础) 和 Grok (xAI)
 
 ## 安装说明
 
@@ -37,8 +38,16 @@ uv pip install -r pyproject.toml
 在使用前，需要配置相关环境变量。请在项目根目录下的 `.env` 文件中添加以下配置：
 
 ```env
-# 阿里云通义千问 API 密钥
+# 通义千问 API 密钥 (任选其一或两者都配置)
 DASHSCOPE_API_KEY=your-dashscope-api-key
+
+# Azure OpenAI 配置 (Microsoft Copilot 基础)
+AZURE_OPENAI_API_KEY=your-azure-openai-api-key
+AZURE_OPENAI_ENDPOINT=https://your-resource-name.openai.azure.com/
+AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4  # 或 gpt-3.5-turbo
+
+# xAI Grok API 密钥
+GROK_API_KEY=your-xai-api-key
 
 # Confluence 配置
 CONFLUENCE_URL=https://your-company.atlassian.net
@@ -69,6 +78,21 @@ python src/main.py
 2. 以带 Markdown 格式的文本形式输出最终文档
 3. 模拟显示将要创建的 Azure DevOps 工作项 ID 和 Confluence 页面链接
 
+您可以使用 `--model` 参数选择不同的AI模型：
+```bash
+# 使用默认的 Qwen 模型
+python src/main.py
+
+# 或明确指定使用 Qwen 模型
+python src/main.py --model qwen
+
+# 使用 Azure OpenAI 模型
+python src/main.py --model azure
+
+# 使用 Grok 模型
+python src/main.py --model grok
+```
+
 ### Web界面
 
 要启动 RequirementTracker Web 界面，请在项目根目录下运行：
@@ -77,7 +101,10 @@ python src/main.py
 streamlit run src/requirement_tracker/webapp.py
 ```
 
-在浏览器中打开提供的地址，即可通过图形界面输入需求并查看结果。
+在浏览器中打开提供的地址，即可通过图形界面输入需求并查看结果。Web界面支持选择不同的AI模型：
+- 通义千问(Qwen)
+- Azure OpenAI (Microsoft Copilot基础)
+- Grok (xAI)
 
 ## 项目结构
 

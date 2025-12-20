@@ -9,7 +9,7 @@ load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '..', '.en
 # 添加项目根目录到Python路径
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 
-from src.requirement_tracker.crew import requirement_crew
+from src.requirement_tracker.crew import requirement_crew, run_crew
 
 def main():
     st.set_page_config(
@@ -21,13 +21,28 @@ def main():
     st.title("📋 Requirement Tracker")
     st.markdown("""
     这是一个基于AI的自动化需求跟踪系统。请输入您的需求描述，
-    系统将自动生成结构化文档、创建Azure DevOps工作项并发布到Confluence。
+    系统将自动生成结构化文档。
     """)
 
+    # 模型选择
+    st.header("🤖 模型选择")
+    model_option = st.radio(
+        "请选择要使用的AI模型:",
+        options=["qwen", "azure", "grok"],
+        format_func=lambda x: "通义千问(Qwen)" if x == "qwen" else "Azure OpenAI (Microsoft Copilot基础)" if x == "azure" else "Grok (xAI)",
+        index=0
+    )
+    
     # 从环境变量获取配置状态
-    required_vars = [
-        "DASHSCOPE_API_KEY"
-    ]
+    if model_option == "qwen":
+        required_vars = ["DASHSCOPE_API_KEY"]
+        model_name = "通义千问(Qwen)"
+    elif model_option == "azure":
+        required_vars = ["AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT"]
+        model_name = "Azure OpenAI (Microsoft Copilot基础)"
+    else:  # grok
+        required_vars = ["GROK_API_KEY"]
+        model_name = "Grok (xAI)"
     
     missing_vars = [var for var in required_vars if not os.getenv(var)]
     
@@ -51,10 +66,10 @@ def main():
             elif missing_vars:
                 st.error("请先配置所有必需的环境变量")
             else:
-                with st.spinner("正在处理您的需求，请稍候..."):
+                with st.spinner(f"正在使用 {model_name} 处理您的需求，请稍候..."):
                     try:
-                        # 启动 Crew，传入输入文字
-                        result = requirement_crew.kickoff(inputs={"input_text": user_input.strip()})
+                        # 启动 Crew，传入输入文字和模型类型
+                        result = run_crew(user_input.strip(), model_option)
                         
                         st.success("✅ 需求处理完成!")
                         
@@ -73,12 +88,13 @@ def main():
     # 使用说明
     st.header("ℹ️ 使用说明")
     st.markdown("""
-    1. 在上方文本框中输入您的需求描述
-    2. 点击"处理需求"按钮开始处理
-    3. 等待系统完成处理（可能需要一些时间）
-    4. 查看处理结果，包括生成的文档链接和工作项ID
+    1. 在上方选择要使用的AI模型
+    2. 在文本框中输入您的需求描述
+    3. 点击"处理需求"按钮开始处理
+    4. 等待系统完成处理（可能需要一些时间）
+    5. 查看处理结果
     
-    > 注意: 确保已在 `.env` 文件中正确配置所有必需的环境变量
+    > 注意: 确保已在 `.env` 文件中正确配置所选模型的环境变量
     """)
 
 if __name__ == "__main__":
