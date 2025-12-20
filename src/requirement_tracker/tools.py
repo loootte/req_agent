@@ -1,4 +1,5 @@
-from crewai import Agent, Task, Crew, Tool
+from crewai import Agent, Task, Crew
+from crewai.tools import BaseTool as Tool, tool
 from atlassian import Confluence
 from azure.devops.connection import Connection
 from azure.devops.v7_1.work_item_tracking.models import JsonPatchOperation
