@@ -5,6 +5,19 @@ description = "A multi-agent AI system that automatically transforms informal re
 authors = [{name = "Your Name", email = "your.email@example.com"}]
 readme = "README.md"
 requires-python = ">=3.10,<3.14"
+license = {text = "MIT"}
+keywords = ["AI", "requirements", "documentation", "multi-agent", "crewai"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Documentation",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence"
+]
 dependencies = [
     "crewai>=0.71.0,<1.0.0",
     "python-dotenv>=1.0.0,<2.0.0",
@@ -19,8 +32,19 @@ dependencies = [
 [project.scripts]
 requirement_tracker = "src.main:main"
 
+[project.urls]
+Homepage = "https://github.com/loootte/req_agent"
+Repository = "https://github.com/loootte/req_agent"
+Issues = "https://github.com/loootte/req_agent/issues"
+
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = ["setuptools>=45", "wheel", "setuptools_scm[toml]>=6.2"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"*" = ["*.md", "*.txt"]
 
 [tool.uv]
 dev-dependencies = [

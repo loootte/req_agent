@@ -4,6 +4,9 @@ Welcome to the RequirementTracker project, a multi-agent AI system built on [cre
 
 欢迎使用 RequirementTracker 项目，这是一个基于 [crewAI](https://crewai.com) 构建的多智能体AI系统。该系统能够自动将非正式的需求描述转换为结构化的需求文档，并以专业的格式输出。
 
+![Tests](https://github.com/loootte/req_agent/actions/workflows/test.yml/badge.svg)
+![Coverage](https://img.shields.io/badge/coverage-87%25-green)
+
 ## Features / 功能特点
 
 - Transform informal requirement descriptions in natural language into structured requirement documents
@@ -317,6 +320,29 @@ Goal: >80% coverage for core modules.
 
 ![Tests](https://github.com/loootte/req_agent/actions/workflows/test.yml/badge.svg)
 ![Coverage](https://img.shields.io/badge/coverage-87%25-green)
+
+## Creating Releases / 创建发布版本
+
+This project uses GitHub Actions for automated releases. To create a new release:
+
+该项目使用 GitHub Actions 进行自动化发布。要创建新版本：
+
+1. Make sure all changes are committed and pushed to the main branch
+2. Create a new tag with semantic versioning (e.g., `v1.2.3`)
+3. Push the tag to GitHub
+4. The release workflow will automatically create a new release with changelog
+
+1. 确保所有更改都已提交并推送到 main 分支
+2. 使用语义化版本创建新标签（例如 `v1.2.3`）
+3. 将标签推送到 GitHub
+4. 发布工作流将自动创建带有变更日志的新版本
+
+```bash
+# Create and push a new tag
+# 创建并推送新标签
+git tag v1.2.3
+git push origin v1.2.3
+```
 
 ## Project Structure / 项目结构
 

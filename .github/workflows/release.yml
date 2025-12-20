@@ -1,0 +1,55 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install uv
+        uv pip install -r pyproject.toml
+
+    - name: Run tests
+      run: |
+        python -m pytest tests/
+
+    - name: Generate changelog
+      run: |
+        echo "## What's Changed" > CHANGELOG_TEMP.md
+        echo "" >> CHANGELOG_TEMP.md
+        git log --oneline $(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "HEAD~10")..HEAD | sed 's/^/* /' >> CHANGELOG_TEMP.md
+        echo "" >> CHANGELOG_TEMP.md
+
+    - name: Get version from tag
+      id: get_version
+      run: |
+        TAG_VERSION=${GITHUB_REF#refs/tags/v}
+        echo "VERSION=$TAG_VERSION" >> $GITHUB_ENV
+
+    - name: Create Release
+      uses: ncipollo/release-action@v1
+      with:
+        name: Release ${{ env.VERSION }}
+        tag: ${{ github.ref }}
+        bodyFile: CHANGELOG_TEMP.md
+        draft: false
+        prerelease: false
