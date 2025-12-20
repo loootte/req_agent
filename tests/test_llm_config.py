@@ -130,6 +130,23 @@ class TestLLMConfig(unittest.TestCase):
         self.assertNotIn('test_model', written_content)
         self.assertNotIn('Test Model', written_content)
 
+    @patch('src.requirement_tracker.config.dotenv_values')
+    @patch('builtins.open', new_callable=mock_open)
+    def test_load_llm_configuration_with_invalid_json(self, mock_file, mock_dotenv_values):
+        """Test loading LLM configuration with invalid JSON"""
+        # Setup mock to return invalid JSON
+        mock_dotenv_values.return_value = {
+            "LLM_CONFIG": '{"invalid": json}'  # Invalid JSON
+        }
+        
+        # Load custom LLMs - should fall back to default models
+        loaded_llms = load_custom_llms()
+        
+        # Assertions - should contain default models
+        self.assertIn('qwen', loaded_llms)
+        self.assertIn('azure', loaded_llms)
+        self.assertIn('grok', loaded_llms)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -96,6 +96,25 @@ class TestWebInterface(unittest.TestCase):
         self.assertIn('Grok (xAI)', model_display_names)
         self.assertIn('Test Model', model_display_names)
 
+    @patch('src.requirement_tracker.webapp.load_env_vars')
+    @patch('src.requirement_tracker.config.get_default_llms')
+    def test_main_page_with_no_env_config(self, mock_get_default_llms, mock_load_env_vars):
+        """Test main page behavior when no environment configuration exists"""
+        # Setup mocks
+        mock_load_env_vars.return_value = {}
+        mock_get_default_llms.return_value = self.default_llms
+        
+        # Load custom LLMs - should fall back to defaults
+        loaded_llms = load_custom_llms()
+        
+        # Assertions - should contain default models
+        self.assertIn('qwen', loaded_llms)
+        self.assertIn('azure', loaded_llms)
+        self.assertIn('grok', loaded_llms)
+        
+        # Should not contain custom model
+        self.assertNotIn('test_model', loaded_llms)
+
 
 if __name__ == '__main__':
     unittest.main()

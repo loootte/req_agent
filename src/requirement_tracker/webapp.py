@@ -55,7 +55,23 @@ def load_custom_llms():
             print(f"LLM_CONFIG内容: {env_vars['LLM_CONFIG']}")
             pass
     
-
+    # 如果没有LLM_CONFIG或解析失败，从旧格式加载
+    custom_llms = {}
+    for key in env_vars:
+        if key.startswith("LLM_CONFIG_"):
+            model_key = key[len("LLM_CONFIG_"):].lower()
+            try:
+                custom_llms[model_key] = json.loads(env_vars[key])
+            except json.JSONDecodeError:
+                pass
+    
+    # 如果仍然没有模型配置，则初始化默认配置
+    if not custom_llms:
+        # 获取默认配置
+        from src.requirement_tracker.config import get_default_llms
+        custom_llms = get_default_llms()
+        
+    return custom_llms
 
 def main():
     st.set_page_config(

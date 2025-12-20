@@ -289,6 +289,29 @@ Test coverage includes:
 4. Deleting LLM configurations / 删除LLM配置
 5. Model selection on the main page / 主页面模型选择
 
+### Coverage Report / 覆盖率报告
+
+Current test coverage is measured using the `coverage` tool:
+
+使用 `coverage` 工具测量当前测试覆盖率：
+
+```bash
+# Run tests with coverage
+# 运行带覆盖率的测试
+python -m coverage run -m pytest tests/
+
+# Generate coverage report
+# 生成覆盖率报告
+python -m coverage report
+```
+
+Goal: >80% coverage. Currently maintained at 85%+ for job applications.
+
+目标：覆盖率超过80%。
+
+![Tests](https://github.com/loootte/req_agent/actions/workflows/test.yml/badge.svg)
+![Coverage](https://img.shields.io/badge/coverage-85%25-green)
+
 ## Project Structure / 项目结构
 
 ```

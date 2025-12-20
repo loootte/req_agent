@@ -26,6 +26,19 @@ class TestRequirementGeneration(unittest.TestCase):
         self.assertEqual(result, "Generated requirement document in English with proper structure")
         mock_crew.kickoff.assert_called_once_with(inputs={"input_text": "Create a user login feature with email and password"})
 
+    @patch('src.requirement_tracker.crew.requirement_crew')
+    def test_analyzer_with_empty_input(self, mock_crew):
+        """Test handling of empty input string"""
+        # Mock the crew and its kickoff method
+        mock_crew.kickoff.return_value = "Error: Empty or invalid input"
+        
+        # Run the crew with an empty input
+        result = run_crew("", "qwen")
+        
+        # Assertions
+        self.assertEqual(result, "Error: Empty or invalid input")
+        mock_crew.kickoff.assert_called_once_with(inputs={"input_text": ""})
+
 
 if __name__ == '__main__':
     unittest.main()
