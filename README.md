@@ -305,11 +305,10 @@ python -m coverage run -m pytest tests/
 python -m coverage report
 ```
 
-Goal: >80% coverage. Currently maintained at 85%+ for job applications.
+Goal: >80% coverage. 
 
 目标：覆盖率超过80%。
 
-![Tests](https://github.com/loootte/req_agent/actions/workflows/test.yml/badge.svg)
 ![Coverage](https://img.shields.io/badge/coverage-85%25-green)
 
 ## Project Structure / 项目结构
