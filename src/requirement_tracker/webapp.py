@@ -13,65 +13,8 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 
 from src.requirement_tracker.crew import requirement_crew, run_crew
 
-def load_env_vars():
-    """加载环境变量"""
-    env_path = Path(__file__).parent.parent.parent / ".env"
-    if env_path.exists():
-        try:
-            return dotenv_values(env_path)
-        except UnicodeDecodeError:
-            # 如果UTF-8解码失败，尝试其他编码
-            try:
-                # 尝试使用gbk编码（常见于中文Windows系统）
-                with open(env_path, 'r', encoding='gbk') as f:
-                    content = f.read()
-                # 将内容写回为UTF-8编码
-                with open(env_path, 'w', encoding='utf-8') as f:
-                    f.write(content)
-                # 重新加载
-                return dotenv_values(env_path)
-            except:
-                # 最后尝试使用latin-1编码
-                with open(env_path, 'r', encoding='latin-1') as f:
-                    content = f.read()
-                # 将内容写回为UTF-8编码
-                with open(env_path, 'w', encoding='utf-8') as f:
-                    f.write(content)
-                # 重新加载
-                return dotenv_values(env_path)
-    return {}
-
-def load_custom_llms():
-    """加载自定义LLM配置"""
-    env_vars = load_env_vars()
-    
-    # 从LLM_CONFIG环境变量加载所有模型配置
-    if "LLM_CONFIG" in env_vars:
-        try:
-            llm_list = json.loads(env_vars["LLM_CONFIG"])
-            return {llm["key"]: llm for llm in llm_list}
-        except json.JSONDecodeError as e:
-            print(f"JSON解析错误: {e}")
-            print(f"LLM_CONFIG内容: {env_vars['LLM_CONFIG']}")
-            pass
-    
-    # 如果没有LLM_CONFIG或解析失败，从旧格式加载
-    custom_llms = {}
-    for key in env_vars:
-        if key.startswith("LLM_CONFIG_"):
-            model_key = key[len("LLM_CONFIG_"):].lower()
-            try:
-                custom_llms[model_key] = json.loads(env_vars[key])
-            except json.JSONDecodeError:
-                pass
-    
-    # 如果仍然没有模型配置，则初始化默认配置
-    if not custom_llms:
-        # 获取默认配置
-        from src.requirement_tracker.config import get_default_llms
-        custom_llms = get_default_llms()
-        
-    return custom_llms
+# 导入重构后的配置函数
+from .config_utils import load_env_vars, load_custom_llms
 
 def main():
     st.set_page_config(

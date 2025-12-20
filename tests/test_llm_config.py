@@ -7,7 +7,7 @@ import json
 # Add the project root to the path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from src.requirement_tracker.config import save_custom_llms, load_custom_llms, get_default_llms
+from src.requirement_tracker.config_utils import save_custom_llms, load_custom_llms, get_default_llms
 
 
 class TestLLMConfig(unittest.TestCase):
@@ -33,7 +33,7 @@ class TestLLMConfig(unittest.TestCase):
             **self.custom_llm
         }
 
-    @patch('src.requirement_tracker.config.dotenv_values')
+    @patch('src.requirement_tracker.config_utils.dotenv_values')
     @patch('builtins.open', new_callable=mock_open)
     def test_add_llm_configuration(self, mock_file, mock_dotenv_values):
         """Test adding a new LLM configuration"""
@@ -54,7 +54,7 @@ class TestLLMConfig(unittest.TestCase):
         self.assertIn('Test Model', written_content)
         self.assertIn('test-api-key', written_content)
 
-    @patch('src.requirement_tracker.config.dotenv_values')
+    @patch('src.requirement_tracker.config_utils.dotenv_values')
     @patch('builtins.open', new_callable=mock_open)
     def test_load_llm_configuration_with_added_model(self, mock_file, mock_dotenv_values):
         """Test loading LLM configuration after adding a model"""
@@ -75,7 +75,7 @@ class TestLLMConfig(unittest.TestCase):
         self.assertEqual(loaded_llms['test_model']['api_key'], 'test-api-key')
         self.assertTrue(loaded_llms['test_model']['editable'])
 
-    @patch('src.requirement_tracker.config.dotenv_values')
+    @patch('src.requirement_tracker.config_utils.dotenv_values')
     @patch('builtins.open', new_callable=mock_open)
     def test_modify_llm_configuration(self, mock_file, mock_dotenv_values):
         """Test modifying an existing LLM configuration"""
@@ -104,7 +104,7 @@ class TestLLMConfig(unittest.TestCase):
         self.assertIn('Modified Test Model', written_content)
         self.assertIn('modified-api-key', written_content)
 
-    @patch('src.requirement_tracker.config.dotenv_values')
+    @patch('src.requirement_tracker.config_utils.dotenv_values')
     @patch('builtins.open', new_callable=mock_open)
     def test_delete_llm_configuration(self, mock_file, mock_dotenv_values):
         """Test deleting an LLM configuration"""
@@ -130,7 +130,7 @@ class TestLLMConfig(unittest.TestCase):
         self.assertNotIn('test_model', written_content)
         self.assertNotIn('Test Model', written_content)
 
-    @patch('src.requirement_tracker.config.dotenv_values')
+    @patch('src.requirement_tracker.config_utils.dotenv_values')
     @patch('builtins.open', new_callable=mock_open)
     def test_load_llm_configuration_with_invalid_json(self, mock_file, mock_dotenv_values):
         """Test loading LLM configuration with invalid JSON"""

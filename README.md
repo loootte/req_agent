@@ -277,6 +277,10 @@ python tests/test_llm_config.py
 # Test web interface functionality
 # 测试Web界面功能
 python tests/test_web_interface.py
+
+# Test command-line interface
+# 测试命令行界面
+python tests/test_main.py
 ```
 
 Test coverage includes:
@@ -288,6 +292,7 @@ Test coverage includes:
 3. Modifying LLM configurations / 修改LLM配置
 4. Deleting LLM configurations / 删除LLM配置
 5. Model selection on the main page / 主页面模型选择
+6. Command-line interface functionality / 命令行界面功能
 
 ### Coverage Report / 覆盖率报告
 
@@ -305,10 +310,11 @@ python -m coverage run -m pytest tests/
 python -m coverage report
 ```
 
-Goal: >80% coverage. 
+Goal: >80% coverage.
 
 目标：覆盖率超过80%。
 
+![Tests](https://github.com/loootte/req_agent/actions/workflows/test.yml/badge.svg)
 ![Coverage](https://img.shields.io/badge/coverage-85%25-green)
 
 ## Project Structure / 项目结构
