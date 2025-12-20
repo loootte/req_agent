@@ -4,3 +4,6 @@ branch = True
 
 [report]
 show_missing = True
+
+[paths]
+source = src/requirement_tracker/config_ui.py

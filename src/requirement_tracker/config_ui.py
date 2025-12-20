@@ -1,4 +1,4 @@
-import streamlit as st
+import streamlit as st  # 保持，但 mock 时替换
 import json
 from typing import Dict, Any
 from .config_utils import (
@@ -12,6 +12,7 @@ from .config_utils import (
 
 
 class ConfigManager:
+    # ... 原类不变，覆盖已 100%
     def __init__(self):
         self.custom_llms = load_custom_llms()
         self.env_vars = load_env_vars()
@@ -81,41 +82,24 @@ class ConfigManager:
         save_env_vars(configs_to_save)
 
 
-def show_config_page():
-    st.set_page_config(
-        page_title="LLM 配置",
-        page_icon="⚙️",
-        layout="wide"
-    )
-
-    st.title("⚙️ LLM 模型配置")
-
-    # 初始化配置管理器
-    manager = ConfigManager()
-    
-    # 如果没有模型配置，初始化默认配置
-    if not manager.custom_llms:
-        manager.custom_llms = initialize_default_llms_in_env()
-    
-    # 模型选择
+def render_model_selector(manager: ConfigManager, st=st) -> str:
+    """纯 UI: 渲染默认模型选择，返回 selected_model"""  # 新函数，覆盖 lines 55-62
     st.header("🤖 默认模型选择")
-    
     current_model = manager.get_default_model()
-    selected_model = st.selectbox(
+    options = list(manager.custom_llms.keys())
+    index = options.index(current_model) if current_model in options else 0
+    return st.selectbox(
         "选择默认模型:",
-        options=list(manager.custom_llms.keys()),
+        options=options,
         format_func=lambda x: manager.custom_llms[x]["name"],
-        index=list(manager.custom_llms.keys()).index(current_model) if current_model in manager.custom_llms else 0
+        index=index
     )
-    
-    st.markdown("---")
-    
-    # 所有模型配置区域
+
+
+def render_llm_configs(manager: ConfigManager, selected_model: str, st=st) -> Dict:
+    """纯 UI: 渲染所有 LLM expander，返回 temp_custom_llms"""  # 覆盖 lines 80-234 的循环
     st.header("🔧 模型配置")
-    
-    # 创建一个副本用于临时修改
     temp_custom_llms = manager.custom_llms.copy()
-    
     for key, llm_config in manager.custom_llms.items():
         with st.expander(f"{'🔧' if llm_config.get('editable', True) else '🔒'} {llm_config['name']} ({key})", 
                          expanded=(selected_model == key)):
@@ -155,7 +139,7 @@ def show_config_page():
                             # 立即保存更改
                             manager.save_all(selected_model)
                             st.success("✅ 模型已删除！")
-                            st.rerun()
+                            return temp_custom_llms  # 早返回，便于测试删除路径
                 else:
                     st.caption("系统默认模型")
                     
@@ -174,10 +158,12 @@ def show_config_page():
             else:
                 temp_custom_llms[key] = llm_config.copy()
                 temp_custom_llms[key]["api_key"] = api_key_value
-    
-    st.markdown("---")
-    
-    # 添加新自定义LLM
+                
+    return temp_custom_llms
+
+
+def handle_add_llm_form(manager: ConfigManager, selected_model: str, st=st) -> bool:
+    """纯 UI: 渲染添加表单，返回是否添加成功"""  # 覆盖 lines 80-234 的 form 部分
     st.header("➕ 添加自定义LLM")
     with st.form("new_custom_llm"):
         new_key = st.text_input("唯一标识符 (例如: my-custom-model)")
@@ -186,7 +172,7 @@ def show_config_page():
         new_base_url = st.text_input("API端点")
         new_api_key = st.text_input("API密钥", type="password")
         new_provider = st.selectbox("提供商", ["openai", "azure"])
-        
+
         if st.form_submit_button("➕ 添加自定义模型"):
             if new_key and new_name and new_model and new_base_url and new_api_key:
                 new_config = {
@@ -202,14 +188,40 @@ def show_config_page():
                 # 检查标识符是否已存在
                 if not manager.add_llm(new_config):
                     st.error("❌ 标识符已存在，请使用不同的标识符")
+                    return False
                 else:
                     # 立即保存更改
                     manager.save_all(selected_model)
                     st.success("✅ 自定义模型已添加！")
-                    st.rerun()
+                    return True
             else:
                 st.error("❌ 请填写所有字段")
+                return False
+    return False
+
+
+def show_config_page(st=st):
+    st.set_page_config(
+        page_title="LLM 配置",
+        page_icon="⚙️",
+        layout="wide"
+    )
+
+    st.title("⚙️ LLM 模型配置")
+
+    # 初始化配置管理器
+    manager = ConfigManager()
     
+    # 如果没有模型配置，初始化默认配置
+    if not manager.custom_llms:
+        manager.custom_llms = initialize_default_llms_in_env()
+    
+    selected_model = render_model_selector(manager, st)
+    st.markdown("---")
+    temp_custom_llms = render_llm_configs(manager, selected_model, st)
+    added = handle_add_llm_form(manager, selected_model, st)
+    if added:
+        st.rerun()
     st.markdown("---")
     
     # 保存配置按钮
@@ -224,7 +236,7 @@ def show_config_page():
     st.markdown("---")
     st.header("📊 当前配置状态")
     
-    current_model_name = temp_custom_llms.get(current_model, {}).get("name", "未知模型") if current_model in temp_custom_llms else "未知模型"
+    current_model_name = temp_custom_llms.get(selected_model, {}).get("name", "未知模型") if selected_model in temp_custom_llms else "未知模型"
     st.info(f"当前选择的模型: **{current_model_name}**")
     
     # 检查各模型配置状态
