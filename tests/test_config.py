@@ -20,14 +20,14 @@ from src.requirement_tracker.config_utils import (
 class TestConfigModule(unittest.TestCase):
     """Test config module functionality"""
 
-    @patch('src.requirement_tracker.config_utils.dotenv_values')
     @patch('src.requirement_tracker.config_utils.DEFAULT_ENV_PATH')
-    def test_load_env_vars_fallback(self, mock_env_path, mock_dotenv_values):
+    def test_load_env_vars_fallback(self, mock_env_path):
         """Test loading environment variables with encoding fallback"""
         mock_env_path.exists.return_value = True
-        mock_dotenv_values.return_value = {'KEY': 'test'}
-        result = load_env_vars()
-        self.assertEqual(result.get('KEY'), 'test')
+        with patch('src.requirement_tracker.config_utils.dotenv_values') as mock_dotenv_values:
+            mock_dotenv_values.return_value = {'KEY': 'test'}
+            result = load_env_vars()
+            self.assertEqual(result.get('KEY'), 'test')
 
     @patch('src.requirement_tracker.config_utils.DEFAULT_ENV_PATH')
     def test_load_env_vars_unicode_error_then_gbk(self, mock_env_path):
