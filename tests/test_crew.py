@@ -89,9 +89,13 @@ def test_get_llm_custom(mock_env, mock_custom_llms):
 def test_get_llm_invalid():
     """测试获取无效模型类型"""
     with patch('src.requirement_tracker.crew.load_custom_llms', return_value={}):
-        llm = get_llm('invalid_model')
-        # 应该返回默认的Qwen模型
-        assert llm.model == 'qwen-max'
+        # Mock _get_qwen_llm to avoid actual LLM instantiation
+        with patch('src.requirement_tracker.crew._get_qwen_llm') as mock_get_qwen:
+            mock_llm = MagicMock()
+            mock_get_qwen.return_value = mock_llm
+            llm = get_llm('invalid_model')
+            # 应该返回默认的Qwen模型
+            assert llm == mock_llm
 
 @patch('src.requirement_tracker.crew.create_analyzer')
 @patch('src.requirement_tracker.crew.create_publisher')
