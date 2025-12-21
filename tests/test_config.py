@@ -24,6 +24,7 @@ class TestConfigModule(unittest.TestCase):
     def test_load_env_vars_fallback(self, mock_env_path):
         """Test loading environment variables with encoding fallback"""
         mock_env_path.exists.return_value = True
+        mock_env_path.is_file.return_value = True
         with patch('src.requirement_tracker.config_utils.dotenv_values') as mock_dotenv_values:
             mock_dotenv_values.return_value = {'KEY': 'test'}
             with patch('src.requirement_tracker.config_utils.FALLBACK_ENCODINGS', []):
@@ -34,6 +35,7 @@ class TestConfigModule(unittest.TestCase):
     def test_load_env_vars_unicode_error_then_gbk(self, mock_env_path):
         """Test loading environment variables with Unicode error then GBK encoding"""
         mock_env_path.exists.return_value = True
+        mock_env_path.is_file.return_value = True
         with patch('src.requirement_tracker.config_utils.dotenv_values') as mock_dotenv_values:
             # First call raises UnicodeDecodeError, second succeeds
             mock_dotenv_values.side_effect = [
