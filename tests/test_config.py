@@ -3,6 +3,9 @@ from unittest.mock import patch, mock_open, MagicMock
 import sys
 import os
 import json
+import pytest
+from pathlib import Path
+from src.requirement_tracker.config_utils import load_env_vars, rewrite_file_utf8
 
 # Add the project root to the path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
