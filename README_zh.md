@@ -316,7 +316,7 @@ open htmlcov/index.html
 
 ```bash
 # Fork 并克隆您的 Fork
-git clone https://github.com/YOUR_USERNAME/req_agent.git
+git clone https://github.com/loootte/req_agent
 
 # 创建功能分支
 git checkout -b feature/your-feature-name
