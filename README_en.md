@@ -164,7 +164,7 @@ python main.py --input requirements.txt --model qwen --create-confluence
 
 ```bash
 # Launch Streamlit interface
-streamlit run ui.py
+streamlit run src\requirement_tracker\webaapp.py
 
 # Open browser at http://localhost:8501
 ```
