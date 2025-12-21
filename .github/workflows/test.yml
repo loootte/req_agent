@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.10', '3.11', '3.12']  # 支持的稳定版本
+        python-version: ['3.10', '3.11', '3.12']
     steps:
       - uses: actions/checkout@v4
 
@@ -19,14 +19,17 @@ jobs:
       - name: Install uv
         run: |
           curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH  # Add uv to PATH
 
-      - name: Create virtual environment
-        run: uv venv .venv  # 创建 .venv
+      - name: Create and activate virtual environment
+        run: |
+          uv venv .venv
+          source .venv/bin/activate
 
       - name: Install dependencies
         run: |
-          source .venv/bin/activate  # 激活 venv
-          uv pip install -r pyproject.toml  # 现在在 venv 中运行
+          source .venv/bin/activate
+          uv sync --group dev  # Installs [dependency-groups.dev]
 
       - name: Run tests
         run: |
