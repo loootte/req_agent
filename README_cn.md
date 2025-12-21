@@ -1,4 +1,4 @@
-# 🤖 RequirementTracker
+# 🤖 RequirementTracker  中文 | [English](README_en.md)
 
 **AI 驱动的需求分析与管理系统**
 
