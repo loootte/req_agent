@@ -5,13 +5,13 @@ import os
 import json
 import pytest
 from pathlib import Path
-from src.requirement_tracker.config_utils import load_env_vars, rewrite_file_utf8
+from src.requirement_tracker.config_utils import 
 
 # Add the project root to the path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from src.requirement_tracker.config_utils import (
-    load_env_vars, 
+    , 
     save_env_vars, 
     load_custom_llms, 
     save_custom_llms,
@@ -29,7 +29,7 @@ class TestConfigModule(unittest.TestCase):
         env_path = tmp_path / ".env"
         return env_path
 
-    def test_load_env_vars_unicode_error_then_gbk(temp_env_file: Path, monkeypatch: pytest.MonkeyPatch):
+    def test__unicode_error_then_gbk(temp_env_file: Path, monkeypatch: pytest.MonkeyPatch):
         """测试 UnicodeDecodeError 后成功用 gbk 解码并重写为 utf-8"""
         # 写入 gbk 编码的有效内容，但用 utf-8 读取会失败的字节
         content_gbk = "KEY=测试值\nAPI_KEY=sk-123".encode('gbk')
@@ -39,7 +39,7 @@ class TestConfigModule(unittest.TestCase):
         monkeypatch.setattr("src.requirement_tracker.config_utils.DEFAULT_ENV_PATH", temp_env_file)
 
         # 执行加载
-        result = load_env_vars()
+        result = ()
 
         # 断言：成功解析内容（gbk 解码成功）
         assert result["KEY"] == "测试值"
@@ -49,7 +49,7 @@ class TestConfigModule(unittest.TestCase):
         rewritten_content = temp_env_file.read_text(encoding='utf-8')
         assert "测试值" in rewritten_content  # 中文字符存在，说明是 utf-8
 
-    def test_load_env_vars_fallback_exhausted(temp_env_file: Path, monkeypatch: pytest.MonkeyPatch):
+    def test__fallback_exhausted(temp_env_file: Path, monkeypatch: pytest.MonkeyPatch):
         """测试所有 fallback 编码都失败时返回空 dict"""
         # 写入完全无效的字节，连 gbk/latin-1 都无法解码的内容
         invalid_bytes = b'\xff\xfe\x00\x80invalid'  # 故意破坏
@@ -57,7 +57,7 @@ class TestConfigModule(unittest.TestCase):
 
         monkeypatch.setattr("src.requirement_tracker.config_utils.DEFAULT_ENV_PATH", temp_env_file)
 
-        result = load_env_vars()
+        result = ()
 
         # 断言：所有 fallback 失败，返回空 dict，不崩溃
         assert result == {}
@@ -88,7 +88,7 @@ class TestConfigModule(unittest.TestCase):
     def test_load_custom_llms_json_decode_error(self, mock_json):
         """Test loading custom LLMs with JSON decode error"""
         mock_json.side_effect = json.JSONDecodeError('test', 'doc', 0)
-        with patch('src.requirement_tracker.config_utils.load_env_vars', 
+        with patch('src.requirement_tracker.config_utils.', 
                    return_value={'LLM_CONFIG': '{"invalid": "json"'}):
             result = load_custom_llms()
             # Should fall back to default models
@@ -96,7 +96,7 @@ class TestConfigModule(unittest.TestCase):
 
     def test_load_custom_llms_legacy_fallback(self):
         """Test loading custom LLMs with legacy format fallback"""
-        with patch('src.requirement_tracker.config_utils.load_env_vars', 
+        with patch('src.requirement_tracker.config_utils.', 
                    return_value={'LLM_CONFIG_qwen': '{"model":"qwen"}'}):
             with patch('json.loads', side_effect=[
                 json.JSONDecodeError('test', 'doc', 0),  # For LLM_CONFIG (doesn't exist)
@@ -171,7 +171,7 @@ class TestConfigModule(unittest.TestCase):
         # Should not have called save_custom_llms
         mock_save.assert_not_called()
 
-    def test_load_env_vars_no_file(self):
+    def test__no_file(self):
         """Test loading environment variables when no .env file exists"""
         # This test would require more complex mocking due to the global DEFAULT_ENV_PATH
         # For now, we'll skip testing this specific case as it's covered by other tests
@@ -202,10 +202,10 @@ class TestConfigModule(unittest.TestCase):
                 handle = mocked_open()
                 handle.write.assert_called()
 
-    @patch('src.requirement_tracker.config_utils.load_env_vars')
-    def test_load_custom_llms_empty_config(self, mock_load_env_vars):
+    @patch('src.requirement_tracker.config_utils.')
+    def test_load_custom_llms_empty_config(self, mock_):
         """Test loading custom LLMs with empty configuration"""
-        mock_load_env_vars.return_value = {}
+        mock_.return_value = {}
         result = load_custom_llms()
         # Should return default models
         self.assertIn('qwen', result)
