@@ -19,14 +19,18 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence"
 ]
 dependencies = [
-    "crewai>=0.71.0,<1.0.0",
     "python-dotenv>=1.0.0,<2.0.0",
     "streamlit>=1.39.0,<2.0.0",
     "langchain>=0.3.0,<1.0.0",
     "langchain-openai>=0.2.0,<1.0.0",
-    "langchain-community>=0.3.0,<1.0.0",
     "litellm>=1.47.0,<2.0.0",
     "langchain-dashscope>=0.1.2,<1.0.0"
+    "crewai==1.6.1",
+    "crewai-tools==1.6.1",
+    "dashscope",
+    "langchain-community==0.3.27",
+    "atlassian-python-api",  
+    "azure-devops"
 ]
 
 [project.scripts]
