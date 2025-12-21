@@ -20,34 +20,46 @@ from src.requirement_tracker.config_utils import (
 class TestConfigModule(unittest.TestCase):
     """Test config module functionality"""
 
-    @patch('src.requirement_tracker.config_utils.DEFAULT_ENV_PATH')
-    def test_load_env_vars_fallback(self, mock_env_path):
-        """Test loading environment variables with encoding fallback"""
-        mock_env_path.exists.return_value = True
-        mock_env_path.is_file.return_value = True
-        with patch('src.requirement_tracker.config_utils.dotenv_values') as mock_dotenv_values:
-            mock_dotenv_values.return_value = {'KEY': 'test'}
-            with patch('src.requirement_tracker.config_utils.FALLBACK_ENCODINGS', []):
-                result = load_env_vars()
-                self.assertEqual(result.get('KEY'), 'test')
+    @pytest.fixture
+    def temp_env_file(tmp_path: Path):
+        """创建临时 .env 文件并返回路径"""
+        env_path = tmp_path / ".env"
+        return env_path
 
-    @patch('src.requirement_tracker.config_utils.DEFAULT_ENV_PATH')
-    def test_load_env_vars_unicode_error_then_gbk(self, mock_env_path):
-        """Test loading environment variables with Unicode error then GBK encoding"""
-        mock_env_path.exists.return_value = True
-        mock_env_path.is_file.return_value = True
-        with patch('src.requirement_tracker.config_utils.dotenv_values') as mock_dotenv_values:
-            # First call raises UnicodeDecodeError, second succeeds
-            mock_dotenv_values.side_effect = [
-                UnicodeDecodeError("utf-8", b"", 0, 1, "test"),
-                {'KEY': 'test'}
-            ]
-            with patch('builtins.open', mock_open(read_data='KEY=test')):
-                with patch('src.requirement_tracker.config_utils._read_file_content') as mock_read:
-                    mock_read.return_value = 'KEY=test'
-                    with patch('src.requirement_tracker.config_utils._rewrite_file_utf8'):
-                        result = load_env_vars()
-                        self.assertEqual(result.get('KEY'), 'test')
+    def test_load_env_vars_unicode_error_then_gbk(temp_env_file: Path, monkeypatch: pytest.MonkeyPatch):
+        """测试 UnicodeDecodeError 后成功用 gbk 解码并重写为 utf-8"""
+        # 写入 gbk 编码的有效内容，但用 utf-8 读取会失败的字节
+        content_gbk = "KEY=测试值\nAPI_KEY=sk-123".encode('gbk')
+        temp_env_file.write_bytes(content_gbk)
+
+        # 模拟默认路径返回临时文件
+        monkeypatch.setattr("src.requirement_tracker.config_utils.DEFAULT_ENV_PATH", temp_env_file)
+
+        # 执行加载
+        result = load_env_vars()
+
+        # 断言：成功解析内容（gbk 解码成功）
+        assert result["KEY"] == "测试值"
+        assert result["API_KEY"] == "sk-123"
+
+        # 断言：文件已被重写为 utf-8 编码
+        rewritten_content = temp_env_file.read_text(encoding='utf-8')
+        assert "测试值" in rewritten_content  # 中文字符存在，说明是 utf-8
+
+    def test_load_env_vars_fallback_exhausted(temp_env_file: Path, monkeypatch: pytest.MonkeyPatch):
+        """测试所有 fallback 编码都失败时返回空 dict"""
+        # 写入完全无效的字节，连 gbk/latin-1 都无法解码的内容
+        invalid_bytes = b'\xff\xfe\x00\x80invalid'  # 故意破坏
+        temp_env_file.write_bytes(invalid_bytes)
+
+        monkeypatch.setattr("src.requirement_tracker.config_utils.DEFAULT_ENV_PATH", temp_env_file)
+
+        result = load_env_vars()
+
+        # 断言：所有 fallback 失败，返回空 dict，不崩溃
+        assert result == {}
+        # 文件不应被重写（因为无法读取）
+        assert temp_env_file.read_bytes() == invalid_bytes
 
     @patch('src.requirement_tracker.config_utils.DEFAULT_ENV_PATH')
     def test_save_env_vars_with_json(self, mock_env_path):
