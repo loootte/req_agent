@@ -1,5 +1,6 @@
 
 # 🤖 RequirementTracker
+[中文](README_zh.md) | English
 
 **AI-Powered Requirements Analysis & Management System**
 
