@@ -318,7 +318,7 @@ We welcome contributions! Here's how you can help:
 
 ```bash
 # Fork and clone your fork
-git clone https://github.com/YOUR_USERNAME/req_agent.git
+git clone https://github.com/loootte/req_agent
 
 # Create a feature branch
 git checkout -b feature/your-feature-name
