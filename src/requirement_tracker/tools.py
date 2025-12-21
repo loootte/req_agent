@@ -1,9 +1,5 @@
 from crewai import Agent, Task, Crew
 from crewai.tools import BaseTool as Tool, tool
-from atlassian import Confluence
-from azure.devops.connection import Connection
-from azure.devops.v7_1.work_item_tracking.models import JsonPatchOperation
-from msrest.authentication import BasicAuthentication
 import os
 
 # 环境变量安全存放凭证（强烈推荐！）
@@ -27,6 +23,15 @@ JIRA_PROJECT = os.getenv("JIRA_PROJECT")
 @tool("Create ADO Feature")
 def create_ado_feature(summary: str, description: str) -> str:
     """在Azure DevOps创建Feature并返回ID"""
+    try:
+        from msrest.authentication import BasicAuthentication
+        from azure.devops.connection import Connection
+        from azure.devops.v7_1.work_item_tracking.models import JsonPatchOperation
+    except ImportError as e:
+        raise ImportError(
+            "Missing Azure DevOps dependencies for create_ado_feature. Install with: pip install req_agent[azure]"
+        ) from e
+
     credentials = BasicAuthentication('', ADO_PAT)
     connection = Connection(base_url=ADO_ORG_URL, creds=credentials)
     wit_client = connection.clients.get_work_item_tracking_client()
@@ -46,6 +51,13 @@ def create_ado_feature(summary: str, description: str) -> str:
 @tool("Create Confluence Page")
 def create_confluence_page(title: str, body_html: str) -> str:
     """创建Confluence页面，返回页面ID"""
+    try:
+        from atlassian import Confluence
+    except ImportError as e:
+        raise ImportError(
+            "Missing Confluence dependencies for create_confluence_page. Install with: pip install req_agent[confluence]"
+        ) from e
+
     confluence = Confluence(url=CONFLUENCE_URL, token=CONFLUENCE_TOKEN)
     page = confluence.create_page(
         space=CONFLUENCE_SPACE,
@@ -56,10 +68,18 @@ def create_confluence_page(title: str, body_html: str) -> str:
     return str(page['id'])
 
 
+
 # Tool 4: 更新Confluence页面标题
 @tool("Update Confluence Page Title")
 def update_confluence_title(page_id: str, new_title: str) -> str:
     """更新Confluence页面标题"""
+    try:
+        from atlassian import Confluence
+    except ImportError as e:
+        raise ImportError(
+            "Missing Confluence dependencies for update_confluence_title. Install with: pip install req_agent[confluence]"
+        ) from e
+
     confluence = Confluence(url=CONFLUENCE_URL, token=CONFLUENCE_TOKEN)
     confluence.update_page(page_id=page_id, title=new_title)
     return "标题更新成功"
@@ -71,8 +91,4 @@ def format_doc(problem: str, goal: str, artifacts: str, criteria: str, risks: st
     """生成Confluence兼容的HTML文档"""
     return f"""
     <h1>Problem Statement</h1><p>{problem}</p>
-    <h1>Requirement/Goal</h1><p>{goal}</p>
-    <h1>Artifacts</h1><p>{artifacts}</p>
-    <h1>Acceptance Criteria</h1><p>{criteria}</p>
-    <h1>Dependency/Risk/Impact to current process</h1><p>{risks}</p>
-    """
+"""
