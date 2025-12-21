@@ -20,13 +20,14 @@ from src.requirement_tracker.config_utils import (
 class TestConfigModule(unittest.TestCase):
     """Test config module functionality"""
 
+    @patch('src.requirement_tracker.config_utils.dotenv_values')
     @patch('src.requirement_tracker.config_utils.DEFAULT_ENV_PATH')
-    def test_load_env_vars_fallback(self, mock_env_path):
+    def test_load_env_vars_fallback(self, mock_env_path, mock_dotenv_values):
         """Test loading environment variables with encoding fallback"""
         mock_env_path.exists.return_value = True
-        with patch('builtins.open', mock_open(read_data='KEY=test')):
-            result = load_env_vars()
-            self.assertEqual(result.get('KEY'), 'test')
+        mock_dotenv_values.return_value = {'KEY': 'test'}
+        result = load_env_vars()
+        self.assertEqual(result.get('KEY'), 'test')
 
     @patch('src.requirement_tracker.config_utils.DEFAULT_ENV_PATH')
     def test_load_env_vars_unicode_error_then_gbk(self, mock_env_path):
@@ -66,7 +67,7 @@ class TestConfigModule(unittest.TestCase):
     def test_load_custom_llms_json_decode_error(self, mock_json):
         """Test loading custom LLMs with JSON decode error"""
         mock_json.side_effect = json.JSONDecodeError('test', 'doc', 0)
-        with patch('src.requirement_tracker.config.load_env_vars', 
+        with patch('src.requirement_tracker.config_utils.load_env_vars', 
                    return_value={'LLM_CONFIG': '{"invalid": "json"'}):
             result = load_custom_llms()
             # Should fall back to default models
@@ -74,7 +75,7 @@ class TestConfigModule(unittest.TestCase):
 
     def test_load_custom_llms_legacy_fallback(self):
         """Test loading custom LLMs with legacy format fallback"""
-        with patch('src.requirement_tracker.config.load_env_vars', 
+        with patch('src.requirement_tracker.config_utils.load_env_vars', 
                    return_value={'LLM_CONFIG_qwen': '{"model":"qwen"}'}):
             with patch('json.loads', side_effect=[
                 json.JSONDecodeError('test', 'doc', 0),  # For LLM_CONFIG (doesn't exist)
