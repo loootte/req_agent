@@ -26,8 +26,9 @@ class TestConfigModule(unittest.TestCase):
         mock_env_path.exists.return_value = True
         with patch('src.requirement_tracker.config_utils.dotenv_values') as mock_dotenv_values:
             mock_dotenv_values.return_value = {'KEY': 'test'}
-            result = load_env_vars()
-            self.assertEqual(result.get('KEY'), 'test')
+            with patch('src.requirement_tracker.config_utils.FALLBACK_ENCODINGS', []):
+                result = load_env_vars()
+                self.assertEqual(result.get('KEY'), 'test')
 
     @patch('src.requirement_tracker.config_utils.DEFAULT_ENV_PATH')
     def test_load_env_vars_unicode_error_then_gbk(self, mock_env_path):
@@ -40,8 +41,11 @@ class TestConfigModule(unittest.TestCase):
                 {'KEY': 'test'}
             ]
             with patch('builtins.open', mock_open(read_data='KEY=test')):
-                result = load_env_vars()
-                self.assertEqual(result.get('KEY'), 'test')
+                with patch('src.requirement_tracker.config_utils._read_file_content') as mock_read:
+                    mock_read.return_value = 'KEY=test'
+                    with patch('src.requirement_tracker.config_utils._rewrite_file_utf8'):
+                        result = load_env_vars()
+                        self.assertEqual(result.get('KEY'), 'test')
 
     @patch('src.requirement_tracker.config_utils.DEFAULT_ENV_PATH')
     def test_save_env_vars_with_json(self, mock_env_path):
