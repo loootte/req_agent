@@ -12,7 +12,6 @@ CONFLUENCE_PARENT_ID = os.getenv("CONFLUENCE_PARENT_ID")  # 可选父页面ID
 ADO_ORG_URL = os.getenv("ADO_ORG_URL")  # https://dev.azure.com/yourorg
 ADO_PAT = os.getenv("ADO_PAT")
 ADO_PROJECT = os.getenv("ADO_PROJECT")
-ADO_FEATURE_TYPE = "Feature"  # 或你的自定义类型
 
 # 如果用Jira
 JIRA_URL = os.getenv("JIRA_URL")
@@ -96,7 +95,7 @@ def get_ado_work_items(project_name: str, work_item_type: str = "Feature") -> li
             SELECT [System.Id], [System.Title], [System.State], [System.WorkItemType], [System.AssignedTo]
             FROM WorkItems
             WHERE [System.TeamProject] = '{escaped_project_name}'
-            AND [System.WorkItemType] = '{escaped_work_item_type}'
+            AND [System.WorkItemType] = '{escaped_work_type}'
             ORDER BY [System.Id] DESC
             """
         )
@@ -142,7 +141,6 @@ def get_ado_work_items(project_name: str, work_item_type: str = "Feature") -> li
         raise Exception(f"获取ADO工作项失败: {str(e)}")
 
 
-
 # Tool 3: 创建Confluence页面
 @tool("Create Confluence Page")
 def create_confluence_page(title: str, body_html: str) -> str:
@@ -169,7 +167,6 @@ def create_confluence_page(title: str, body_html: str) -> str:
     return str(page['id'])
 
 
-
 # Tool 4: 更新Confluence页面标题
 @tool("Update Confluence Page Title")
 def update_confluence_title(page_id: str, new_title: str) -> str:
@@ -191,7 +188,152 @@ def update_confluence_title(page_id: str, new_title: str) -> str:
     return "标题更新成功"
 
 
-# Tool 5: 生成结构化需求文档HTML（可选）
+# Tool 5: 获取Confluence空间列表
+@tool("Get Confluence Spaces")
+def get_confluence_spaces(max_results: int = 100) -> list:
+    """获取Confluence中的所有空间"""
+    try:
+        from atlassian import Confluence
+    except ImportError as e:
+        raise ImportError(
+            "Missing Confluence dependencies for get_confluence_spaces. Install with: pip install req_agent[confluence]"
+        ) from e
+
+    try:
+        # 使用用户名和API token进行认证
+        confluence = Confluence(
+            url=CONFLUENCE_URL,
+            username=CONFLUENCE_USER,  # 用户邮箱
+            password=CONFLUENCE_TOKEN  # API Token
+        )
+        
+        # 获取空间列表
+        response = confluence.get_all_spaces(start=0, limit=max_results, expand='description.plain,homepage')
+
+        # 检查响应格式并相应处理
+        if isinstance(response, dict) and 'results' in response:
+            spaces_data = response['results']
+        elif isinstance(response, list):
+            spaces_data = response
+        else:
+            spaces_data = []
+
+        space_list = []
+
+        for space in spaces_data:
+            space_list.append({
+                'key': space.get('key', ''),
+                'name': space.get('name', ''),
+                'id': space.get('id', ''),
+                'description': space.get('description', {}).get('plain', {}).get('value', '') if space.get('description') else ''
+            })
+
+        return space_list
+    except Exception as e:
+        raise Exception(f"获取Confluence空间列表失败: {str(e)}")
+
+
+# Tool 6: 获取Confluence页面列表
+@tool("Get Confluence Pages")
+def get_confluence_pages(space_key: str, max_results: int = 100) -> list:
+    """获取指定空间中的所有页面"""
+    try:
+        from atlassian import Confluence
+    except ImportError as e:
+        raise ImportError(
+            "Missing Confluence dependencies for get_confluence_pages. Install with: pip install req_agent[confluence]"
+        ) from e
+
+    try:
+        # 使用用户名和API token进行认证
+        confluence = Confluence(
+            url=CONFLUENCE_URL,
+            username=CONFLUENCE_USER,  # 用户邮箱
+            password=CONFLUENCE_TOKEN  # API Token
+        )
+        
+        # 获取页面列表
+        response = confluence.get_all_pages_from_space(space=space_key, start=0, limit=max_results, expand='space,history,ancestors')
+
+        # 检查响应格式并相应处理
+        if isinstance(response, dict) and 'results' in response:
+            pages_data = response['results']
+        elif isinstance(response, list):
+            pages_data = response
+        else:
+            pages_data = []
+
+        page_list = []
+
+        for page in pages_data:
+            # 获取父页面信息
+            parent_id = None
+            ancestors = page.get('ancestors', [])
+            if ancestors:
+                # 最后一个祖先通常是直接父页面
+                parent_id = ancestors[-1].get('id')
+
+            page_list.append({
+                'id': page.get('id', ''),
+                'title': page.get('title', ''),
+                'space': page.get('space', {}).get('key', space_key),
+                'url': f"{CONFLUENCE_URL}{page.get('_links', {}).get('webui', f'/spaces/{space_key}/pages/{page.get('id', '')}') if page.get('_links') else f'/spaces/{space_key}/pages/{page.get('id', '')}'}",
+                'content': page.get('body', {}).get('storage', {}).get('value', '') if page.get('body', {}).get('storage') else '',
+                'version': page.get('version', {}).get('number', 0) if page.get('version') else 0,
+                'created_date': page.get('history', {}).get('createdDate', '') if page.get('history') else '',
+                'parent_id': parent_id
+            })
+
+        return page_list
+    except Exception as e:
+        raise Exception(f"获取空间 {space_key} 的页面列表失败: {str(e)}")
+
+
+# Tool 7: 获取Confluence页面内容
+@tool("Get Confluence Page Content")
+def get_confluence_page_content(page_id: str) -> dict:
+    """获取指定页面的内容"""
+    try:
+        from atlassian import Confluence
+    except ImportError as e:
+        raise ImportError(
+            "Missing Confluence dependencies for get_confluence_page_content. Install with: pip install req_agent[confluence]"
+        ) from e
+
+    try:
+        # 使用用户名和API token进行认证
+        confluence = Confluence(
+            url=CONFLUENCE_URL,
+            username=CONFLUENCE_USER,  # 用户邮箱
+            password=CONFLUENCE_TOKEN  # API Token
+        )
+        
+        # 获取页面详情
+        page = confluence.get_page_by_id(page_id=page_id, expand='space,history')
+
+        # 获取页面内容
+        content = confluence.get_page_by_id(page_id=page_id, expand='body.storage')
+        page_content = content.get('body', {}).get('storage', {}).get('value', '')
+
+        if page:
+            result = {
+                'id': page.get('id', ''),
+                'title': page.get('title', ''),
+                'space': page.get('space', {}).get('key', ''),
+                'url': f"{CONFLUENCE_URL}{page.get('_links', {}).get('webui', '')}",
+                'content': page_content,
+                'version': page.get('version', {}).get('number', 0) if page.get('version') else 0,
+                'created_date': page.get('history', {}).get('createdDate', '') if page.get('history') else '',
+                'last_modified': page.get('history', {}).get('lastUpdated', {}).get('when', '') if page.get('history', {}).get('lastUpdated') else ''
+            }
+            return result
+        else:
+            raise Exception(f"页面 {page_id} 不存在")
+    except Exception as e:
+        raise Exception(f"获取页面 {page_id} 内容失败: {str(e)}")
+
+
+# Tool 8: 生成结构化需求文档HTML（可选）
 @tool("Format Requirement Document")
 def format_doc(problem: str, goal: str, artifacts: str, criteria: str, risks: str) -> str:
     """生成Confluence兼容的HTML文档"""

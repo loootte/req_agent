@@ -116,7 +116,7 @@ def main():
     st.sidebar.title("🎯 导航")
     page = st.sidebar.radio(
         "选择页面:",
-        ["🏠 主页", "⚙️ LLM 配置", "📊 ADO 浏览器"]
+        ["🏠 主页", "⚙️ LLM 配置", "📊 ADO 浏览器", "📖 Confluence 浏览器"]
     )
     
     if page == "🏠 主页":
@@ -129,6 +129,10 @@ def main():
         # 导入ADO浏览器页面模块
         from src.requirement_tracker.ado_browser import show_ado_browser
         show_ado_browser()
+    elif page == "📖 Confluence 浏览器":
+        # 导入Confluence浏览器页面模块
+        from src.requirement_tracker.confluence_browser import show_confluence_browser
+        show_confluence_browser()
 
     # 固定在底部的日志窗口
     if 'show_logs' not in st.session_state:
