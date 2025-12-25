@@ -164,12 +164,20 @@ def create_crew(selected_model: str, env_vars: Optional[Dict[str, str]] = None) 
     analyzer = create_analyzer(llm)
     publisher = create_publisher(llm)
     
-    # 创建任务实例
-    task1_instance = task1.copy()
-    task2_instance = task2.copy()
+    # 直接创建任务实例，而不是复制
+    from .tasks import task1_description, task1_expected_output, task2_description, task2_expected_output
     
-    task1_instance.agent = analyzer
-    task2_instance.agent = publisher
+    task1_instance = Task(
+        description=task1_description,
+        expected_output=task1_expected_output,
+        agent=analyzer
+    )
+    
+    task2_instance = Task(
+        description=task2_description,
+        expected_output=task2_expected_output,
+        agent=publisher
+    )
     
     return Crew(
         agents=[analyzer, publisher],

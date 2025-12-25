@@ -34,3 +34,10 @@ task2 = Task(
     expected_output="格式化的markdown文本，包含结构化需求文档和模拟的ADO工作项ID及Confluence页面链接",
     # agent将在运行时通过crew.py设置
 )
+
+# 提供任务描述和预期输出的访问，以便在crew.py中创建新实例
+task1_description = task1.description
+task1_expected_output = task1.expected_output
+
+task2_description = task2.description
+task2_expected_output = task2.expected_output
