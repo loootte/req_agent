@@ -12,11 +12,33 @@ CONFLUENCE_PARENT_ID = os.getenv("CONFLUENCE_PARENT_ID")  # 可选父页面ID
 ADO_ORG_URL = os.getenv("ADO_ORG_URL")  # https://dev.azure.com/yourorg
 ADO_PAT = os.getenv("ADO_PAT")
 ADO_PROJECT = os.getenv("ADO_PROJECT")
+ADO_FEATURE_TYPE = os.getenv("ADO_FEATURE_TYPE", "Feature")  # 默认值为 "Feature"
 
 # 如果用Jira
 JIRA_URL = os.getenv("JIRA_URL")
 JIRA_TOKEN = os.getenv("JIRA_TOKEN")
 JIRA_PROJECT = os.getenv("JIRA_PROJECT")
+
+
+def get_ado_connection():
+    """获取Azure DevOps连接的通用函数"""
+    try:
+        from msrest.authentication import BasicAuthentication
+        from azure.devops.connection import Connection
+    except ImportError as e:
+        raise ImportError(
+            "Missing Azure DevOps dependencies. Install with: pip install req_agent[azure]"
+        ) from e
+
+    if not ADO_PAT or not ADO_ORG_URL:
+        raise Exception("ADO配置不完整，请检查环境变量ADO_ORG_URL和ADO_PAT")
+
+    try:
+        credentials = BasicAuthentication('', ADO_PAT)
+        connection = Connection(base_url=ADO_ORG_URL, creds=credentials)
+        return connection
+    except Exception as e:
+        raise Exception(f"ADO连接失败: {str(e)}")
 
 
 # Tool 1: 在ADO创建Feature
@@ -32,8 +54,7 @@ def create_ado_feature(summary: str, description: str) -> str:
             "Missing Azure DevOps dependencies for create_ado_feature. Install with: pip install req_agent[azure]"
         ) from e
 
-    credentials = BasicAuthentication('', ADO_PAT)
-    connection = Connection(base_url=ADO_ORG_URL, creds=credentials)
+    connection = get_ado_connection()
     wit_client = connection.clients.get_work_item_tracking_client()
 
     patch = [
@@ -58,8 +79,7 @@ def get_ado_projects() -> list:
         ) from e
 
     try:
-        credentials = BasicAuthentication('', ADO_PAT)
-        connection = Connection(base_url=ADO_ORG_URL, creds=credentials)
+        connection = get_ado_connection()
         core_client = connection.clients.get_core_client()
         projects = core_client.get_projects()
         return [project.name for project in projects]
@@ -81,8 +101,7 @@ def get_ado_work_items(project_name: str, work_item_type: str = "Feature") -> li
         ) from e
 
     try:
-        credentials = BasicAuthentication('', ADO_PAT)
-        connection = Connection(base_url=ADO_ORG_URL, creds=credentials)
+        connection = get_ado_connection()
         wit_client = connection.clients.get_work_item_tracking_client()
         
         # 查询工作项的WIQL查询
@@ -95,7 +114,7 @@ def get_ado_work_items(project_name: str, work_item_type: str = "Feature") -> li
             SELECT [System.Id], [System.Title], [System.State], [System.WorkItemType], [System.AssignedTo]
             FROM WorkItems
             WHERE [System.TeamProject] = '{escaped_project_name}'
-            AND [System.WorkItemType] = '{escaped_work_type}'
+            AND [System.WorkItemType] = '{escaped_work_item_type}'
             ORDER BY [System.Id] DESC
             """
         )
@@ -133,6 +152,140 @@ def get_ado_work_items(project_name: str, work_item_type: str = "Feature") -> li
             print("查询返回0个工作项")
         
         print(f"成功获取 {len(work_items)} 个工作项")
+        return work_items
+    except Exception as e:
+        print(f"获取ADO工作项失败: {str(e)}")
+        import traceback
+        print(f"详细错误信息: {traceback.format_exc()}")
+        raise Exception(f"获取ADO工作项失败: {str(e)}")
+
+
+# Tool 2.2: 获取ADO Area路径
+@tool("Get ADO Area Paths")
+def get_area_paths(project_name: str) -> list:
+    """获取指定项目的所有Area路径"""
+    try:
+        from msrest.authentication import BasicAuthentication
+        from azure.devops.connection import Connection
+    except ImportError as e:
+        raise ImportError(
+            "Missing Azure DevOps dependencies for get_area_paths. Install with: pip install req_agent[azure]"
+        ) from e
+
+    try:
+        connection = get_ado_connection()
+        
+        # 获取 Work Item Tracking 客户端
+        wit_client = connection.clients.get_work_item_tracking_client()
+        
+        # 获取 Area Path 分类节点
+        try:
+            # 获取根节点及其所有子节点
+            area_root = wit_client.get_classification_node(
+                project=project_name,
+                structure_group='areas',
+                depth=100  # 获取所有层级
+            )
+            
+            # 递归提取所有Area路径
+            def extract_areas(node, parent_path=""):
+                areas = []
+                current_path = f"{parent_path}\\{node.name}" if parent_path else node.name
+                
+                # 添加当前节点
+                areas.append({
+                    'name': node.name,
+                    'path': current_path,
+                    'id': node.id
+                })
+                
+                # 递归处理子节点
+                if hasattr(node, 'children') and node.children:
+                    for child in node.children:
+                        areas.extend(extract_areas(child, current_path))
+                
+                return areas
+            
+            # 提取所有Area路径
+            if hasattr(area_root, 'children') and area_root.children:
+                all_areas = []
+                for child in area_root.children:
+                    all_areas.extend(extract_areas(child))
+                return all_areas
+            else:
+                # 如果没有子节点，返回根节点本身
+                return [{
+                    'name': area_root.name,
+                    'path': area_root.name,
+                    'id': area_root.id
+                }] if area_root.name else []
+                
+        except Exception as e:
+            print(f"获取 Area Path 失败: {str(e)}")
+            return []
+    except Exception as e:
+        raise Exception(f"获取项目 {project_name} 的Area路径失败: {str(e)}")
+
+
+# Tool 2.3: 获取ADO工作项（支持Area过滤）
+@tool("Get ADO Work Items with Area Filter")
+def get_ado_work_items_with_area(project_name: str, work_item_type: str = "Feature", area_path: str = None) -> list:
+    """获取指定项目的工作项，支持Area路径过滤"""
+    try:
+        from msrest.authentication import BasicAuthentication
+        from azure.devops.connection import Connection
+        from azure.devops.v7_1.work_item_tracking.models import Wiql
+    except ImportError as e:
+        raise ImportError(
+            "Missing Azure DevOps dependencies for get_ado_work_items_with_area. Install with: pip install req_agent[azure]"
+        ) from e
+
+    try:
+        connection = get_ado_connection()
+        wit_client = connection.clients.get_work_item_tracking_client()
+        
+        # 构建查询条件
+        where_clause = f"[System.TeamProject] = '{project_name.replace("'", "''")}' AND [System.WorkItemType] = '{work_item_type.replace("'", "''")}'"
+        
+        # 如果指定了Area，则添加Area过滤条件
+        if area_path:
+            where_clause += f" AND [System.AreaPath] = '{area_path.replace("'", "''")}'"
+        
+        # 查询工作项的WIQL查询
+        wiql_query = Wiql(
+            query=f"""
+            SELECT [System.Id], [System.Title], [System.State], [System.WorkItemType], [System.AssignedTo], [System.AreaPath], [System.Description]
+            FROM WorkItems
+            WHERE {where_clause}
+            ORDER BY [System.Id] DESC
+            """
+        )
+        
+        # 执行查询
+        query_result = wit_client.query_by_wiql(wiql=wiql_query)
+        work_items = []
+        
+        if query_result.work_items:
+            # 获取详细的工作项信息
+            work_item_ids = [item.id for item in query_result.work_items]
+            if work_item_ids:
+                # 分批获取工作项详情，避免404错误（ADO API对批量请求有限制）
+                batch_size = 200  # ADO API推荐的批量大小
+                for i in range(0, len(work_item_ids), batch_size):
+                    batch_ids = work_item_ids[i:i + batch_size]
+                    
+                    batch_items = wit_client.get_work_items(ids=batch_ids)
+                    for item in batch_items:
+                        work_items.append({
+                            'id': item.id,
+                            'title': item.fields.get('System.Title', 'No Title'),
+                            'type': item.fields.get('System.WorkItemType', 'N/A'),
+                            'state': item.fields.get('System.State', 'N/A'),
+                            'area_path': item.fields.get('System.AreaPath', 'N/A'),
+                            'assigned_to': item.fields.get('System.AssignedTo', {}).get('displayName', 'Unassigned') if item.fields.get('System.AssignedTo') else 'Unassigned',
+                            'description': item.fields.get('System.Description', 'N/A')
+                        })
+        
         return work_items
     except Exception as e:
         print(f"获取ADO工作项失败: {str(e)}")
@@ -221,11 +374,20 @@ def get_confluence_spaces(max_results: int = 100) -> list:
         space_list = []
 
         for space in spaces_data:
+            # 处理空间描述，兼容字符串和字典格式
+            description = ''
+            if space.get('description'):
+                desc_data = space.get('description')
+                if isinstance(desc_data, dict):
+                    description = desc_data.get('plain', {}).get('value', '')
+                elif isinstance(desc_data, str):
+                    description = desc_data
+            
             space_list.append({
                 'key': space.get('key', ''),
                 'name': space.get('name', ''),
                 'id': space.get('id', ''),
-                'description': space.get('description', {}).get('plain', {}).get('value', '') if space.get('description') else ''
+                'description': description
             })
 
         return space_list
@@ -311,11 +473,11 @@ def get_confluence_page_content(page_id: str) -> dict:
         # 获取页面详情
         page = confluence.get_page_by_id(page_id=page_id, expand='space,history')
 
-        # 获取页面内容
-        content = confluence.get_page_by_id(page_id=page_id, expand='body.storage')
-        page_content = content.get('body', {}).get('storage', {}).get('value', '')
-
         if page:
+            # 获取页面内容
+            content = confluence.get_page_by_id(page_id=page_id, expand='body.storage')
+            page_content = content.get('body', {}).get('storage', {}).get('value', '') if content else ''
+            
             result = {
                 'id': page.get('id', ''),
                 'title': page.get('title', ''),

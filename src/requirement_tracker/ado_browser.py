@@ -4,36 +4,19 @@ Azure DevOps (ADO) 浏览器模块
 """
 import os
 import streamlit as st
-from azure.devops.connection import Connection
-from msrest.authentication import BasicAuthentication
 from azure.devops.v7_1.work_item_tracking.models import Wiql
+from openai import project
 
-
-def get_ado_connection():
-    """获取ADO连接"""
-    ado_org_url = os.getenv("ADO_ORG_URL")
-    ado_pat = os.getenv("ADO_PAT")
-    
-    if not ado_org_url or not ado_pat:
-        st.error("ADO配置不完整，请检查环境变量ADO_ORG_URL和ADO_PAT")
-        add_log("ADO配置不完整，请检查环境变量ADO_ORG_URL和ADO_PAT", "ERROR")
-        return None
-    
-    try:
-        credentials = BasicAuthentication('', ado_pat)
-        connection = Connection(base_url=ado_org_url, creds=credentials)
-        add_log("ADO连接成功建立", "INFO")
-        return connection
-    except Exception as e:
-        st.error(f"ADO连接失败: {str(e)}")
-        add_log(f"ADO连接失败: {str(e)}", "ERROR")
-        return None
+from .tools import get_ado_connection  # 导入通用的ADO连接函数
 
 
 def get_projects():
-    """获取所有ADO项目"""
-    connection = get_ado_connection()
-    if not connection:
+    """获取所有ADO项目，直接使用Azure DevOps SDK"""
+    try:
+        connection = get_ado_connection()
+    except Exception as e:
+        st.error(str(e))
+        add_log(str(e), "ERROR")
         return []
     
     try:
@@ -48,32 +31,104 @@ def get_projects():
         return []
 
 
-def get_work_items(project_name, work_item_type="Feature"):
-    """获取指定项目的工作项"""
-    connection = get_ado_connection()
-    if not connection:
+def get_areas(project_name):
+    """获取指定项目的所有Area，直接使用Azure DevOps SDK"""
+    try:
+        connection = get_ado_connection()
+    except Exception as e:
+        st.error(str(e))
+        add_log(str(e), "ERROR")
         return []
     
     try:
         wit_client = connection.clients.get_work_item_tracking_client()
         
-        # 查询工作项的WIQL查询
-        # 对项目名称和工作项类型进行适当的转义处理
-        escaped_project_name = project_name.replace("'", "''")
-        escaped_work_item_type = work_item_type.replace("'", "''")
+        # 获取 Area Path 分类节点
+        try:
+            # 获取根节点及其所有子节点
+            area_root = wit_client.get_classification_node(
+                project=project_name,
+                structure_group='areas',
+                depth=100  # 获取所有层级
+            )
+            
+            # 递归提取所有Area路径
+            def extract_areas(node, parent_path=""):
+                areas = []
+                current_path = f"{parent_path}\\{node.name}" if parent_path else node.name
+                
+                # 添加当前节点
+                areas.append({
+                    'name': node.name,
+                    'path': current_path,
+                    'id': node.id
+                })
+                
+                # 递归处理子节点
+                if hasattr(node, 'children') and node.children:
+                    for child in node.children:
+                        areas.extend(extract_areas(child, current_path))
+                
+                return areas
+            
+            # 提取所有Area路径
+            all_areas = []
+            if hasattr(area_root, 'children') and area_root.children:
+                for child in area_root.children:
+                    all_areas.extend(extract_areas(child))
+            elif area_root.name:  # 如果没有子节点，返回根节点本身
+                all_areas.append({
+                    'name': area_root.name,
+                    'path': area_root.name,
+                    'id': area_root.id
+                })
+            
+            # 提取Area路径列表
+            areas = [area['path'] for area in all_areas]
+            
+            add_log(f"成功获取项目 {project_name} 的 {len(areas)} 个Area", "INFO")
+            return sorted(areas)
+        except Exception as e:
+            print(f"获取 Area Path 失败: {str(e)}")
+            return []
+    except Exception as e:
+        st.error(f"获取Area列表失败: {str(e)}")
+        add_log(f"获取Area列表失败: {str(e)}", "ERROR")
+        return []
+
+
+def get_work_items(project_name, work_item_type="Feature", area_path=None):
+    """获取指定项目的工作项，支持Area过滤，直接使用Azure DevOps SDK"""
+    try:
+        connection = get_ado_connection()
+    except Exception as e:
+        st.error(str(e))
+        add_log(str(e), "ERROR")
+        return []
+    
+    try:
+        wit_client = connection.clients.get_work_item_tracking_client()
         
+        # 构建查询条件
+        where_clause = f"[System.TeamProject] = '{project_name.replace("'", "''")}' AND [System.WorkItemType] = '{work_item_type.replace("'", "''")}'"
+        
+        # 如果指定了Area，则添加Area过滤条件
+        if area_path:
+            where_clause += f" AND [System.AreaPath] = '{project_name}\\{area_path.replace("'", "''")}'"
+        
+        # 查询工作项的WIQL查询
         wiql_query = Wiql(
             query=f"""
-            SELECT [System.Id], [System.Title], [System.State], [System.WorkItemType], [System.AssignedTo], [System.Description]
+            SELECT [System.Id], [System.Title], [System.State], [System.WorkItemType], [System.AssignedTo], [System.AreaPath], [System.Description]
             FROM WorkItems
-            WHERE [System.TeamProject] = '{escaped_project_name}'
-            AND [System.WorkItemType] = '{escaped_work_item_type}'
+            WHERE {where_clause}
             ORDER BY [System.Id] DESC
             """
         )
         
         # 添加调试日志
-        add_log(f"执行WIQL查询: 项目='{escaped_project_name}', 类型='{escaped_work_item_type}'", "INFO")
+        area_info = f", Area='{area_path}'" if area_path else ""
+        add_log(f"执行WIQL查询: 项目='{project_name}'{area_info}, 类型='{work_item_type}'", "INFO")
         add_log(f"完整查询语句: {wiql_query.query}", "DEBUG")
         
         # 执行查询
@@ -100,6 +155,7 @@ def get_work_items(project_name, work_item_type="Feature"):
                             'title': item.fields.get('System.Title', 'No Title'),
                             'type': item.fields.get('System.WorkItemType', 'N/A'),
                             'state': item.fields.get('System.State', 'N/A'),
+                            'area_path': item.fields.get('System.AreaPath', 'N/A'),
                             'assigned_to': item.fields.get('System.AssignedTo', {}).get('displayName', 'Unassigned') if item.fields.get('System.AssignedTo') else 'Unassigned',
                             'description': item.fields.get('System.Description', 'N/A')
                         })
@@ -161,17 +217,34 @@ def show_ado_browser():
     selected_project = st.selectbox("选择项目", projects)
     
     if selected_project:
+        # 获取Area列表
+        with st.spinner("正在获取Area列表..."):
+            areas = get_areas(selected_project)
+        
+        # 选择Area（如果存在Area）
+        if areas:
+            area_options = ["全部"] + areas
+            selected_area = st.selectbox("选择Area", area_options)
+        else:
+            selected_area = "全部"
+            st.info("该项目没有找到Area信息")
+        
         # 选择工作项类型
         work_item_types = ["Feature", "User Story", "Task", "Bug"]
         selected_type = st.selectbox("选择工作项类型", work_item_types)
         
         # 显示工作项
         if st.button("获取工作项"):
+            # 如果选择的Area是"全部"，则不使用Area过滤
+            area_filter = selected_area if selected_area != "全部" else None
+            
             with st.spinner(f"正在获取 {selected_project} 项目中的{selected_type}工作项..."):
-                work_items = get_work_items(selected_project, selected_type)
+                work_items = get_work_items(selected_project, selected_type, area_filter)
             
             if work_items:
-                st.subheader(f"项目 {selected_project} 中的{selected_type}工作项 ({len(work_items)} 个)")
+                # 构建标题，包括Area信息
+                area_info = f" (Area: {selected_area})" if selected_area != "全部" else ""
+                st.subheader(f"项目 {selected_project} 中的{selected_type}工作项{area_info} ({len(work_items)} 个)")
                 
                 # 显示工作项表格
                 for item in work_items:
@@ -180,6 +253,7 @@ def show_ado_browser():
                         st.write(f"**标题:** {item['title']}")
                         st.write(f"**类型:** {item['type']}")
                         st.write(f"**状态:** {item['state']}")
+                        st.write(f"**Area:** {item['area_path']}")
                         st.write(f"**负责人:** {item['assigned_to']}")
                         
                         if item['description'] and item['description'] != 'N/A':
@@ -188,4 +262,4 @@ def show_ado_browser():
                 st.info("该项目中没有找到相应类型的工作项")
                 add_log(f"项目 {selected_project} 中没有找到 {selected_type} 类型的工作项", "INFO")
         else:
-            st.info(f"选择项目 {selected_project} 并点击'获取工作项'按钮来查看{selected_type}工作项")
+            st.info(f"选择项目 {selected_project} 和Area {selected_area}，然后点击'获取工作项'按钮来查看{selected_type}工作项")
