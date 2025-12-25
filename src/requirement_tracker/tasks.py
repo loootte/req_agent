@@ -29,9 +29,9 @@ task2 = Task(
     - Acceptance Criteria
     - Dependency/Risk/Impact to current process
     
-    同时模拟显示将要创建的ADO工作项ID和Confluence页面链接（但不实际创建）。
+    同时实际创建ADO工作项和Confluence页面，并返回创建的ID和链接。
     """,
-    expected_output="格式化的markdown文本，包含结构化需求文档和模拟的ADO工作项ID及Confluence页面链接",
+    expected_output="格式化的markdown文本，包含结构化需求文档和实际创建的ADO工作项ID及Confluence页面链接",
     # agent将在运行时通过crew.py设置
 )
 
