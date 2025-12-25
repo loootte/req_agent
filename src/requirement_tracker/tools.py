@@ -245,7 +245,9 @@ def get_ado_work_items_with_area(project_name: str, work_item_type: str = "Featu
         wit_client = connection.clients.get_work_item_tracking_client()
         
         # 构建查询条件
-        where_clause = f"[System.TeamProject] = '{project_name.replace("'", "''")}' AND [System.WorkItemType] = '{work_item_type.replace("'", "''")}'"
+        escaped_project_name = project_name.replace("'", "''")
+        escaped_work_item_type = work_item_type.replace("'", "''")
+        where_clause = f"[System.TeamProject] = '{escaped_project_name}' AND [System.WorkItemType] = '{escaped_work_item_type}'"
         
         # 如果指定了Area，则添加Area过滤条件
         if area_path:
