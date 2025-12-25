@@ -249,7 +249,8 @@ def get_ado_work_items_with_area(project_name: str, work_item_type: str = "Featu
         
         # 如果指定了Area，则添加Area过滤条件
         if area_path:
-            where_clause += f" AND [System.AreaPath] = '{area_path.replace("'", "''")}'"
+            escaped_area_path = area_path.replace("'", "''")
+            where_clause += f" AND [System.AreaPath] = '{escaped_area_path}'"
         
         # 查询工作项的WIQL查询
         wiql_query = Wiql(
