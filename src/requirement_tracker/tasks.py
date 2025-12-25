@@ -41,3 +41,6 @@ task1_expected_output = task1.expected_output
 
 task2_description = task2.description
 task2_expected_output = task2.expected_output
+
+# 导出变量，以便测试可以访问
+__all__ = ['task1', 'task2', 'task1_description', 'task1_expected_output', 'task2_description', 'task2_expected_output']

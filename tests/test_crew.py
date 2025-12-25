@@ -97,12 +97,12 @@ def test_get_llm_invalid():
             # 应该返回默认的Qwen模型
             assert llm == mock_llm
 
-@patch('src.requirement_tracker.crew.create_analyzer')
-@patch('src.requirement_tracker.crew.create_publisher')
-@patch('src.requirement_tracker.crew.task1')
-@patch('src.requirement_tracker.crew.task2')
+@patch('src.requirement_tracker.crew.create_task1_instance')
+@patch('src.requirement_tracker.crew.create_task2_instance')
 @patch('src.requirement_tracker.crew.Crew')
-def test_create_crew(mock_crew_class, mock_task2, mock_task1, mock_create_publisher, mock_create_analyzer, mock_env):
+@patch('src.requirement_tracker.crew.create_publisher')
+@patch('src.requirement_tracker.crew.create_analyzer')
+def test_create_crew(mock_create_analyzer, mock_create_publisher, mock_crew_class, mock_create_task2_instance, mock_create_task1_instance, mock_env):
     """测试创建Crew实例"""
     # 设置mock返回值
     mock_analyzer = MagicMock()
@@ -113,8 +113,8 @@ def test_create_crew(mock_crew_class, mock_task2, mock_task1, mock_create_publis
     
     mock_create_analyzer.return_value = mock_analyzer
     mock_create_publisher.return_value = mock_publisher
-    mock_task1.copy.return_value = mock_task1_instance
-    mock_task2.copy.return_value = mock_task2_instance
+    mock_create_task1_instance.return_value = mock_task1_instance
+    mock_create_task2_instance.return_value = mock_task2_instance
     mock_crew_class.return_value = mock_crew_instance
 
     # 创建crew
@@ -123,21 +123,26 @@ def test_create_crew(mock_crew_class, mock_task2, mock_task1, mock_create_publis
     # 验证调用
     mock_create_analyzer.assert_called_once()
     mock_create_publisher.assert_called_once()
-    mock_crew_class.assert_called_once_with(
-        agents=[mock_analyzer, mock_publisher],
-        tasks=[mock_task1_instance, mock_task2_instance],
-        verbose=True
-    )
+    mock_create_task1_instance.assert_called_once()
+    mock_create_task2_instance.assert_called_once()
+    mock_crew_class.assert_called_once()
+    
+    # 验证传递给Crew的参数
+    args, kwargs = mock_crew_class.call_args
+    assert kwargs.get('verbose') is True
+    assert len(args) == 0  # 所有参数都应该是关键字参数
+    assert 'agents' in kwargs
+    assert 'tasks' in kwargs
     
     # 验证返回的crew
     assert crew == mock_crew_instance
 
-@patch('src.requirement_tracker.crew.create_analyzer')
-@patch('src.requirement_tracker.crew.create_publisher')
-@patch('src.requirement_tracker.crew.task1')
-@patch('src.requirement_tracker.crew.task2')
 @patch('src.requirement_tracker.crew.Crew')
-def test_run_crew_success(mock_crew_class, mock_task2, mock_task1, mock_create_publisher, mock_create_analyzer, mock_env):
+@patch('src.requirement_tracker.crew.create_publisher')
+@patch('src.requirement_tracker.crew.create_analyzer')
+@patch('src.requirement_tracker.crew.create_task2_instance')
+@patch('src.requirement_tracker.crew.create_task1_instance')
+def test_run_crew_success(mock_create_task1_instance, mock_create_task2_instance, mock_create_analyzer, mock_create_publisher, mock_crew_class, mock_env):
     """测试成功运行Crew"""
     # 设置mock返回值
     mock_analyzer = MagicMock()
@@ -148,8 +153,8 @@ def test_run_crew_success(mock_crew_class, mock_task2, mock_task1, mock_create_p
     
     mock_create_analyzer.return_value = mock_analyzer
     mock_create_publisher.return_value = mock_publisher
-    mock_task1.copy.return_value = mock_task1_instance
-    mock_task2.copy.return_value = mock_task2_instance
+    mock_create_task1_instance.return_value = mock_task1_instance
+    mock_create_task2_instance.return_value = mock_task2_instance
     mock_crew_class.return_value = mock_crew_instance
     mock_crew_instance.kickoff.return_value = "Test result"
     

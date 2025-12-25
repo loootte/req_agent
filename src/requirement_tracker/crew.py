@@ -167,22 +167,29 @@ def create_crew(selected_model: str, env_vars: Optional[Dict[str, str]] = None) 
     # 直接创建任务实例，而不是复制
     from .tasks import task1_description, task1_expected_output, task2_description, task2_expected_output
     
-    task1_instance = Task(
-        description=task1_description,
-        expected_output=task1_expected_output,
-        agent=analyzer
-    )
-    
-    task2_instance = Task(
-        description=task2_description,
-        expected_output=task2_expected_output,
-        agent=publisher
-    )
+    task1_instance = create_task1_instance(task1_description, task1_expected_output, analyzer)
+    task2_instance = create_task2_instance(task2_description, task2_expected_output, publisher)
     
     return Crew(
         agents=[analyzer, publisher],
         tasks=[task1_instance, task2_instance],
         verbose=True
+    )
+
+def create_task1_instance(description, expected_output, agent):
+    """创建任务1实例，用于测试目的"""
+    return Task(
+        description=description,
+        expected_output=expected_output,
+        agent=agent
+    )
+
+def create_task2_instance(description, expected_output, agent):
+    """创建任务2实例，用于测试目的"""
+    return Task(
+        description=description,
+        expected_output=expected_output,
+        agent=agent
     )
 
 def run_crew(input_text: str, model_type: str = "qwen", env_vars: Optional[Dict[str, str]] = None) -> str:

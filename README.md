@@ -330,29 +330,13 @@ pytest
 ```
 
 ---
-
-## 📊 Performance Metrics
-
-Based on pilot projects across energy, automotive, and retail industries:
-
-| Metric | Before | After | Improvement |
-|--------|--------|-------|-------------|
-| **Requirements Doc Time** | 2 hours | 15 minutes | **8x faster** |
-| **Manual Work Reduction** | 100% | 40% | **60% saved** |
-| **Requirements Completeness** | 75% | 95% | **+20%** |
-| **Stakeholder Satisfaction** | 3.5/5 | 4.4/5 | **+25%** |
-
-*Metrics from 3 pilot projects (sample size: 45+ requirements documents)*
-
----
-
 ## 🏢 Enterprise Support
 
 Interested in enterprise deployment, custom features, or consulting services?
 
-- 📧 Email: [your-email@example.com]
-- 💼 LinkedIn: [Your LinkedIn Profile]
-- 🌐 Website: [Your Website]
+- 📧 Email: tuya000000@gmail.com
+- 📞 Phone: +86 180 5718 8110
+
 
 We offer:
 - **Custom LLM integration** (private/on-premises models)
