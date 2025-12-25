@@ -86,37 +86,58 @@ def get_ado_work_items(project_name: str, work_item_type: str = "Feature") -> li
         wit_client = connection.clients.get_work_item_tracking_client()
         
         # 查询工作项的WIQL查询
+        # 对项目名称和工作项类型进行适当的转义处理
+        escaped_project_name = project_name.replace("'", "''")
+        escaped_work_item_type = work_item_type.replace("'", "''")
+        
         wiql_query = Wiql(
             query=f"""
             SELECT [System.Id], [System.Title], [System.State], [System.WorkItemType], [System.AssignedTo]
             FROM WorkItems
-            WHERE [System.TeamProject] = '{project_name}'
-            AND [System.WorkItemType] = '{work_item_type}'
+            WHERE [System.TeamProject] = '{escaped_project_name}'
+            AND [System.WorkItemType] = '{escaped_work_item_type}'
             ORDER BY [System.Id] DESC
             """
         )
+        
+        # 添加调试信息
+        print(f"执行WIQL查询: 项目='{escaped_project_name}', 类型='{escaped_work_item_type}'")
+        print(f"完整查询语句: {wiql_query.query}")
         
         # 执行查询
         query_result = wit_client.query_by_wiql(wiql=wiql_query)
         work_items = []
         
         if query_result.work_items:
+            print(f"查询返回 {len(query_result.work_items)} 个工作项")
             # 获取详细的工作项信息
             work_item_ids = [item.id for item in query_result.work_items]
             if work_item_ids:
-                work_items_details = wit_client.get_work_items(ids=work_item_ids)
-                for item in work_items_details:
-                    work_items.append({
-                        'id': item.id,
-                        'title': item.fields.get('System.Title', 'No Title'),
-                        'type': item.fields.get('System.WorkItemType', 'N/A'),
-                        'state': item.fields.get('System.State', 'N/A'),
-                        'assigned_to': item.fields.get('System.AssignedTo', {}).get('displayName', 'Unassigned') if item.fields.get('System.AssignedTo') else 'Unassigned',
-                        'description': item.fields.get('System.Description', 'N/A')
-                    })
+                # 分批获取工作项详情，避免404错误（ADO API对批量请求有限制）
+                batch_size = 200  # ADO API推荐的批量大小
+                for i in range(0, len(work_item_ids), batch_size):
+                    batch_ids = work_item_ids[i:i + batch_size]
+                    print(f"获取批次 {i//batch_size + 1}: {len(batch_ids)} 个工作项")
+                    
+                    batch_items = wit_client.get_work_items(ids=batch_ids)
+                    for item in batch_items:
+                        work_items.append({
+                            'id': item.id,
+                            'title': item.fields.get('System.Title', 'No Title'),
+                            'type': item.fields.get('System.WorkItemType', 'N/A'),
+                            'state': item.fields.get('System.State', 'N/A'),
+                            'assigned_to': item.fields.get('System.AssignedTo', {}).get('displayName', 'Unassigned') if item.fields.get('System.AssignedTo') else 'Unassigned',
+                            'description': item.fields.get('System.Description', 'N/A')
+                        })
+        else:
+            print("查询返回0个工作项")
         
+        print(f"成功获取 {len(work_items)} 个工作项")
         return work_items
     except Exception as e:
+        print(f"获取ADO工作项失败: {str(e)}")
+        import traceback
+        print(f"详细错误信息: {traceback.format_exc()}")
         raise Exception(f"获取ADO工作项失败: {str(e)}")
 
 

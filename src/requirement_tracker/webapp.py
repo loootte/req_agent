@@ -23,6 +23,95 @@ def main():
         layout="wide"
     )
 
+    # 初始化日志
+    if 'log_messages' not in st.session_state:
+        st.session_state.log_messages = []
+
+    # 添加日志函数
+    def add_log(message, level="INFO"):
+        timestamp = st.runtime.get_instance().get_timestamp() if hasattr(st.runtime, 'get_instance') else "时间戳"
+        log_entry = f"[{timestamp}] {level}: {message}"
+        st.session_state.log_messages.append(log_entry)
+        # 只保留最近100条日志
+        if len(st.session_state.log_messages) > 100:
+            st.session_state.log_messages = st.session_state.log_messages[-100:]
+
+    # 从文件加载CSS样式
+    css_path = Path(__file__).parent / "static" / "styles.css"
+    if css_path.exists():
+        with open(css_path, "r", encoding="utf-8") as f:
+            st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+    else:
+        # 如果CSS文件不存在，使用内联样式作为备选
+        st.markdown("""
+        <style>
+        #logs-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 200px;
+            background-color: #f0f2f6;
+            border-top: 2px solid #808080;
+            z-index: 999;
+            overflow-y: auto;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        
+        #logs-content {
+            height: calc(100% - 30px);
+            overflow-y: auto;
+        }
+        
+        .log-entry {
+            margin: 2px 0;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+        
+        .log-info { background-color: #e8f4fd; }
+        .log-success { background-color: #e6f4ea; }
+        .log-warning { background-color: #fef7e0; }
+        .log-error { background-color: #fce8e6; }
+        
+        .toggle-logs {
+            position: absolute;
+            top: 5px;
+            right: 10px;
+            cursor: pointer;
+            background: #0e1117;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            padding: 2px 8px;
+            font-size: 12px;
+        }
+        
+        .logs-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #0e1117;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px 5px 0 0;
+            margin-bottom: 5px;
+        }
+        
+        .clear-logs {
+            cursor: pointer;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            padding: 2px 8px;
+            font-size: 12px;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+
     # 创建导航栏
     st.sidebar.title("🎯 导航")
     page = st.sidebar.radio(
@@ -40,6 +129,46 @@ def main():
         # 导入ADO浏览器页面模块
         from src.requirement_tracker.ado_browser import show_ado_browser
         show_ado_browser()
+
+    # 固定在底部的日志窗口
+    if 'show_logs' not in st.session_state:
+        st.session_state.show_logs = True
+
+    if st.session_state.show_logs:
+        # 日志窗口的HTML
+        with st.container():
+            st.markdown('<div id="logs-container">', unsafe_allow_html=True)
+            
+            # 日志窗口头部
+            col1, col2, col3 = st.columns([4, 1, 1])
+            with col1:
+                st.markdown('<div class="logs-header">📋 跟踪日志</div>', unsafe_allow_html=True)
+            with col2:
+                if st.button("❌", key="close_logs", help="隐藏日志窗口"):
+                    st.session_state.show_logs = False
+            with col3:
+                if st.button("🗑️", key="clear_logs", help="清空日志"):
+                    st.session_state.log_messages = []
+            
+            # 日志内容
+            with st.container():
+                st.markdown('<div id="logs-content">', unsafe_allow_html=True)
+                if st.session_state.log_messages:
+                    for log in st.session_state.log_messages:
+                        # 根据日志级别设置样式
+                        if "ERROR" in log:
+                            st.markdown(f'<div class="log-entry log-error">{log}</div>', unsafe_allow_html=True)
+                        elif "WARNING" in log:
+                            st.markdown(f'<div class="log-entry log-warning">{log}</div>', unsafe_allow_html=True)
+                        elif "SUCCESS" in log:
+                            st.markdown(f'<div class="log-entry log-success">{log}</div>', unsafe_allow_html=True)
+                        else:
+                            st.markdown(f'<div class="log-entry log-info">{log}</div>', unsafe_allow_html=True)
+                else:
+                    st.text("暂无日志信息...")
+                st.markdown('</div>', unsafe_allow_html=True)
+            
+            st.markdown('</div>', unsafe_allow_html=True)
 
 def show_main_page():
     st.title("📋 Requirement Tracker")
