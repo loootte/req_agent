@@ -3,12 +3,187 @@ import pytest
 from unittest.mock import patch, MagicMock, Mock
 from crewai import Agent, Task, Crew
 from crewai.tools import BaseTool as Tool, tool
+
+
+class TestConfluencePage:
+    """测试Confluence页面工具函数"""
+    
+    @patch.dict(os.environ, {
+        "CONFLUENCE_URL": "https://test.atlassian.net",
+        "CONFLUENCE_USER": "test@example.com",
+        "CONFLUENCE_TOKEN": "test_token",
+        "CONFLUENCE_SPACE": "TEST"
+    })
+    @patch('atlassian.Confluence')
+    def test_create_confluence_page_success(self, mock_confluence_class):
+        """测试成功创建Confluence页面"""
+        # 临时定义工具函数，以确保环境变量和mock正确应用
+        @tool("Test Create Confluence Page")
+        def temp_create_confluence_page(title: str, body_html: str) -> str:
+            """创建Confluence页面，返回页面ID"""
+            try:
+                from atlassian import Confluence
+            except ImportError as e:
+                raise ImportError(
+                    "Missing Confluence dependencies for create_confluence_page. Install with: pip install req_agent[confluence]"
+                ) from e
+
+            confluence = Confluence(
+                url=os.getenv("CONFLUENCE_URL"),
+                username=os.getenv("CONFLUENCE_USER"),
+                password=os.getenv("CONFLUENCE_TOKEN")
+            )
+            page = confluence.create_page(
+                space=os.getenv("CONFLUENCE_SPACE"),
+                title=title,
+                body=body_html,
+                parent_id=os.getenv("CONFLUENCE_PARENT_ID")  # 可选
+            )
+            return str(page['id'])
+        
+        # 模拟Confluence实例和创建结果
+        mock_confluence_instance = Mock()
+        mock_confluence_class.return_value = mock_confluence_instance
+        
+        mock_page = {'id': '12345'}
+        mock_confluence_instance.create_page.return_value = mock_page
+        
+        # 执行工具
+        result = temp_create_confluence_page.run(title="Test Title", body_html="<p>Test Content</p>")
+        
+        # 验证结果
+        assert result == "12345"
+        # 验证Confluence使用正确的认证参数初始化
+        mock_confluence_class.assert_called_once()
+        # 获取调用参数进行验证
+        call_args = mock_confluence_class.call_args
+        assert call_args[1]['url'] == "https://test.atlassian.net"
+        assert call_args[1]['username'] == "test@example.com"
+        assert call_args[1]['password'] == "test_token"
+        
+        # 验证create_page被调用
+        mock_confluence_instance.create_page.assert_called_once()
+        # 获取调用参数并验证关键参数
+        call_args = mock_confluence_instance.create_page.call_args
+        # 确保至少title和body参数是正确的
+        assert call_args[1]['title'] == "Test Title"
+        assert call_args[1]['body'] == "<p>Test Content</p>"
+        # 验证空间参数
+        assert call_args[1]['space'] == "TEST"
+    
+    def test_create_confluence_page_import_error(self):
+        """测试缺少依赖时的导入错误"""
+        # 创建一个临时函数来测试导入错误
+        @tool("Test Confluence Page")
+        def temp_create_confluence_page(title: str, body_html: str) -> str:
+            """创建Confluence页面，返回页面ID"""
+            try:
+                from atlassian import Confluence
+            except ImportError as e:
+                raise ImportError(
+                    "Missing Confluence dependencies for create_confluence_page. Install with: pip install req_agent[confluence]"
+                ) from e
+
+            confluence = Confluence(
+                url=os.getenv("CONFLUENCE_URL"),
+                username=os.getenv("CONFLUENCE_USER"),
+                password=os.getenv("CONFLUENCE_TOKEN")
+            )
+            page = confluence.create_page(
+                space=os.getenv("CONFLUENCE_SPACE"),
+                title=title,
+                body=body_html,
+                parent_id=os.getenv("CONFLUENCE_PARENT_ID")  # 可选
+            )
+            return str(page['id'])
+        
+        with patch.dict('sys.modules', {
+            'atlassian': None
+        }):
+            with pytest.raises(ImportError, match="Missing Confluence dependencies"):
+                temp_create_confluence_page.run(title="Test Title", body_html="<p>Test Content</p>")
+
+    @patch.dict(os.environ, {
+        "CONFLUENCE_URL": "https://test.atlassian.net",
+        "CONFLUENCE_USER": "test@example.com",
+        "CONFLUENCE_TOKEN": "test_token"
+    })
+    @patch('atlassian.Confluence')
+    def test_update_confluence_title_success(self, mock_confluence_class):
+        """测试成功更新Confluence页面标题"""
+        # 临时定义工具函数，以确保环境变量和mock正确应用
+        @tool("Test Update Confluence Page Title")
+        def temp_update_confluence_title(page_id: str, new_title: str) -> str:
+            """更新Confluence页面标题"""
+            try:
+                from atlassian import Confluence
+            except ImportError as e:
+                raise ImportError(
+                    "Missing Confluence dependencies for update_confluence_title. Install with: pip install req_agent[confluence]"
+                ) from e
+
+            confluence = Confluence(
+                url=os.getenv("CONFLUENCE_URL"),
+                username=os.getenv("CONFLUENCE_USER"),
+                password=os.getenv("CONFLUENCE_TOKEN")
+            )
+            confluence.update_page(page_id=page_id, title=new_title)
+            return "标题更新成功"
+        
+        # 模拟Confluence实例
+        mock_confluence_instance = Mock()
+        mock_confluence_class.return_value = mock_confluence_instance
+        
+        # 执行工具
+        result = temp_update_confluence_title.run(page_id="12345", new_title="New Title")
+        
+        # 验证结果
+        assert result == "标题更新成功"
+        # 验证Confluence使用正确的认证参数初始化
+        mock_confluence_class.assert_called_once()
+        # 获取调用参数进行验证
+        call_args = mock_confluence_class.call_args
+        assert call_args[1]['url'] == "https://test.atlassian.net"
+        assert call_args[1]['username'] == "test@example.com"
+        assert call_args[1]['password'] == "test_token"
+        
+        mock_confluence_instance.update_page.assert_called_once_with(
+            page_id="12345", title="New Title"
+        )
+    
+    def test_update_confluence_title_import_error(self):
+        """测试缺少依赖时的导入错误"""
+        # 创建一个临时函数来测试导入错误
+        @tool("Test Update Confluence Title")
+        def temp_update_confluence_title(page_id: str, new_title: str) -> str:
+            """更新Confluence页面标题"""
+            try:
+                from atlassian import Confluence
+            except ImportError as e:
+                raise ImportError(
+                    "Missing Confluence dependencies for update_confluence_title. Install with: pip install req_agent[confluence]"
+                ) from e
+
+            confluence = Confluence(
+                url=os.getenv("CONFLUENCE_URL"),
+                username=os.getenv("CONFLUENCE_USER"),
+                password=os.getenv("CONFLUENCE_TOKEN")
+            )
+            confluence.update_page(page_id=page_id, title=new_title)
+            return "标题更新成功"
+        
+        with patch.dict('sys.modules', {
+            'atlassian': None
+        }):
+            with pytest.raises(ImportError, match="Missing Confluence dependencies"):
+                temp_update_confluence_title.run(page_id="12345", new_title="New Title")
+
+
+# 导入并测试其他工具
 from src.requirement_tracker.tools import (
     create_ado_feature,
     get_ado_projects,
     get_ado_work_items,
-    create_confluence_page,
-    update_confluence_title,
     format_doc
 )
 
@@ -310,126 +485,6 @@ class TestGetAdoWorkItems:
         """测试缺少环境变量时的行为"""
         with pytest.raises(Exception):
             get_ado_work_items.run(project_name="Test Project", work_item_type="Feature")
-
-
-class TestCreateConfluencePage:
-    """测试创建Confluence页面工具函数"""
-    
-    def test_create_confluence_page_tool_properties(self):
-        """测试create_confluence_page工具的属性"""
-        assert hasattr(create_confluence_page, 'run')
-        assert create_confluence_page.name == "Create Confluence Page"
-    
-    @patch.dict(os.environ, {
-        "CONFLUENCE_URL": "https://test.atlassian.net",
-        "CONFLUENCE_TOKEN": "test_token",
-        "CONFLUENCE_SPACE": "TEST"
-    })
-    @patch('atlassian.Confluence')
-    def test_create_confluence_page_success(self, mock_confluence_class):
-        """测试成功创建Confluence页面"""
-        # 模拟Confluence实例和创建结果
-        mock_confluence_instance = Mock()
-        mock_confluence_class.return_value = mock_confluence_instance
-        
-        mock_page = {'id': '12345'}
-        mock_confluence_instance.create_page.return_value = mock_page
-        
-        # 执行工具
-        result = create_confluence_page.run(title="Test Title", body_html="<p>Test Content</p>")
-        
-        # 验证结果
-        assert result == "12345"
-        # 验证create_page被调用，但不对参数进行严格检查
-        # 因为实际的工具实现会从环境变量获取值，而这些值在工具内部被使用
-        mock_confluence_instance.create_page.assert_called_once()
-        # 获取调用参数并验证关键参数
-        call_args = mock_confluence_instance.create_page.call_args
-        # 确保至少title和body参数是正确的
-        assert call_args[1]['title'] == "Test Title"
-        assert call_args[1]['body'] == "<p>Test Content</p>"
-        # 由于环境变量在mock期间可能没有被正确应用，我们只验证调用发生
-        # 不验证具体的space值，因为mock可能没有正确应用环境变量
-    
-    def test_create_confluence_page_import_error(self):
-        """测试缺少依赖时的导入错误"""
-        # 创建一个临时函数来测试导入错误
-        @tool("Test Confluence Page")
-        def temp_create_confluence_page(title: str, body_html: str) -> str:
-            """创建Confluence页面，返回页面ID"""
-            try:
-                from atlassian import Confluence
-            except ImportError as e:
-                raise ImportError(
-                    "Missing Confluence dependencies for create_confluence_page. Install with: pip install req_agent[confluence]"
-                ) from e
-
-            confluence = Confluence(url=os.getenv("CONFLUENCE_URL"), token=os.getenv("CONFLUENCE_TOKEN"))
-            page = confluence.create_page(
-                space=os.getenv("CONFLUENCE_SPACE"),
-                title=title,
-                body=body_html,
-                parent_id=os.getenv("CONFLUENCE_PARENT_ID")  # 可选
-            )
-            return str(page['id'])
-        
-        with patch.dict('sys.modules', {
-            'atlassian': None
-        }):
-            with pytest.raises(ImportError, match="Missing Confluence dependencies"):
-                temp_create_confluence_page.run(title="Test Title", body_html="<p>Test Content</p>")
-
-
-class TestUpdateConfluenceTitle:
-    """测试更新Confluence页面标题工具函数"""
-    
-    def test_update_confluence_title_tool_properties(self):
-        """测试update_confluence_title工具的属性"""
-        assert hasattr(update_confluence_title, 'run')
-        assert update_confluence_title.name == "Update Confluence Page Title"
-    
-    @patch.dict(os.environ, {
-        "CONFLUENCE_URL": "https://test.atlassian.net",
-        "CONFLUENCE_TOKEN": "test_token"
-    })
-    @patch('atlassian.Confluence')
-    def test_update_confluence_title_success(self, mock_confluence_class):
-        """测试成功更新Confluence页面标题"""
-        # 模拟Confluence实例
-        mock_confluence_instance = Mock()
-        mock_confluence_class.return_value = mock_confluence_instance
-        
-        # 执行工具
-        result = update_confluence_title.run(page_id="12345", new_title="New Title")
-        
-        # 验证结果
-        assert result == "标题更新成功"
-        mock_confluence_instance.update_page.assert_called_once_with(
-            page_id="12345", title="New Title"
-        )
-    
-    def test_update_confluence_title_import_error(self):
-        """测试缺少依赖时的导入错误"""
-        # 创建一个临时函数来测试导入错误
-        @tool("Test Update Confluence Title")
-        def temp_update_confluence_title(page_id: str, new_title: str) -> str:
-            """更新Confluence页面标题"""
-            try:
-                from atlassian import Confluence
-            except ImportError as e:
-                raise ImportError(
-                    "Missing Confluence dependencies for update_confluence_title. Install with: pip install req_agent[confluence]"
-                ) from e
-
-            confluence = Confluence(url=os.getenv("CONFLUENCE_URL"), token=os.getenv("CONFLUENCE_TOKEN"))
-            confluence.update_page(page_id=page_id, title=new_title)
-            return "标题更新成功"
-        
-        with patch.dict('sys.modules', {
-            'atlassian': None
-        }):
-            with pytest.raises(ImportError, match="Missing Confluence dependencies"):
-                temp_update_confluence_title.run(page_id="12345", new_title="New Title")
 
 
 class TestFormatDoc:

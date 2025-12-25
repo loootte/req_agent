@@ -4,6 +4,7 @@ import os
 
 # 环境变量安全存放凭证（强烈推荐！）
 CONFLUENCE_URL = os.getenv("CONFLUENCE_URL")
+CONFLUENCE_USER = os.getenv("CONFLUENCE_USER")  # 用户邮箱
 CONFLUENCE_TOKEN = os.getenv("CONFLUENCE_TOKEN")  # API Token
 CONFLUENCE_SPACE = os.getenv("CONFLUENCE_SPACE")  # 如 "REQ"
 CONFLUENCE_PARENT_ID = os.getenv("CONFLUENCE_PARENT_ID")  # 可选父页面ID
@@ -153,7 +154,12 @@ def create_confluence_page(title: str, body_html: str) -> str:
             "Missing Confluence dependencies for create_confluence_page. Install with: pip install req_agent[confluence]"
         ) from e
 
-    confluence = Confluence(url=CONFLUENCE_URL, token=CONFLUENCE_TOKEN)
+    # 使用用户名和API token进行认证
+    confluence = Confluence(
+        url=CONFLUENCE_URL, 
+        username=CONFLUENCE_USER,  # 用户邮箱
+        password=CONFLUENCE_TOKEN  # API Token
+    )
     page = confluence.create_page(
         space=CONFLUENCE_SPACE,
         title=title,
@@ -175,7 +181,12 @@ def update_confluence_title(page_id: str, new_title: str) -> str:
             "Missing Confluence dependencies for update_confluence_title. Install with: pip install req_agent[confluence]"
         ) from e
 
-    confluence = Confluence(url=CONFLUENCE_URL, token=CONFLUENCE_TOKEN)
+    # 使用用户名和API token进行认证
+    confluence = Confluence(
+        url=CONFLUENCE_URL, 
+        username=CONFLUENCE_USER,  # 用户邮箱
+        password=CONFLUENCE_TOKEN  # API Token
+    )
     confluence.update_page(page_id=page_id, title=new_title)
     return "标题更新成功"
 
