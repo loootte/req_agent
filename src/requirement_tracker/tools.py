@@ -45,6 +45,80 @@ def create_ado_feature(summary: str, description: str) -> str:
     return str(work_item.id)
 
 
+# Tool 2: 获取ADO项目列表
+@tool("Get ADO Projects")
+def get_ado_projects() -> list:
+    """获取Azure DevOps中的所有项目"""
+    try:
+        from msrest.authentication import BasicAuthentication
+        from azure.devops.connection import Connection
+    except ImportError as e:
+        raise ImportError(
+            "Missing Azure DevOps dependencies for get_ado_projects. Install with: pip install req_agent[azure]"
+        ) from e
+
+    try:
+        credentials = BasicAuthentication('', ADO_PAT)
+        connection = Connection(base_url=ADO_ORG_URL, creds=credentials)
+        core_client = connection.clients.get_core_client()
+        projects = core_client.get_projects()
+        return [project.name for project in projects]
+    except Exception as e:
+        raise Exception(f"获取ADO项目列表失败: {str(e)}")
+
+
+# Tool 2.1: 获取ADO工作项
+@tool("Get ADO Work Items")
+def get_ado_work_items(project_name: str, work_item_type: str = "Feature") -> list:
+    """获取指定项目中的工作项"""
+    try:
+        from msrest.authentication import BasicAuthentication
+        from azure.devops.connection import Connection
+        from azure.devops.v7_1.work_item_tracking.models import Wiql
+    except ImportError as e:
+        raise ImportError(
+            "Missing Azure DevOps dependencies for get_ado_work_items. Install with: pip install req_agent[azure]"
+        ) from e
+
+    try:
+        credentials = BasicAuthentication('', ADO_PAT)
+        connection = Connection(base_url=ADO_ORG_URL, creds=credentials)
+        wit_client = connection.clients.get_work_item_tracking_client()
+        
+        # 查询工作项的WIQL查询
+        wiql_query = Wiql(
+            query=f"""
+            SELECT [System.Id], [System.Title], [System.State], [System.WorkItemType], [System.AssignedTo]
+            FROM WorkItems
+            WHERE [System.TeamProject] = '{project_name}'
+            AND [System.WorkItemType] = '{work_item_type}'
+            ORDER BY [System.Id] DESC
+            """
+        )
+        
+        # 执行查询
+        query_result = wit_client.query_by_wiql(wiql=wiql_query)
+        work_items = []
+        
+        if query_result.work_items:
+            # 获取详细的工作项信息
+            work_item_ids = [item.id for item in query_result.work_items]
+            if work_item_ids:
+                work_items_details = wit_client.get_work_items(ids=work_item_ids)
+                for item in work_items_details:
+                    work_items.append({
+                        'id': item.id,
+                        'title': item.fields.get('System.Title', 'No Title'),
+                        'type': item.fields.get('System.WorkItemType', 'N/A'),
+                        'state': item.fields.get('System.State', 'N/A'),
+                        'assigned_to': item.fields.get('System.AssignedTo', {}).get('displayName', 'Unassigned') if item.fields.get('System.AssignedTo') else 'Unassigned',
+                        'description': item.fields.get('System.Description', 'N/A')
+                    })
+        
+        return work_items
+    except Exception as e:
+        raise Exception(f"获取ADO工作项失败: {str(e)}")
+
 
 
 # Tool 3: 创建Confluence页面

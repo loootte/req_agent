@@ -27,7 +27,7 @@ def main():
     st.sidebar.title("🎯 导航")
     page = st.sidebar.radio(
         "选择页面:",
-        ["🏠 主页", "⚙️ LLM 配置"]
+        ["🏠 主页", "⚙️ LLM 配置", "📊 ADO 浏览器"]
     )
     
     if page == "🏠 主页":
@@ -36,6 +36,10 @@ def main():
         # 导入配置页面模块
         from src.requirement_tracker.config import show_config_page
         show_config_page()
+    elif page == "📊 ADO 浏览器":
+        # 导入ADO浏览器页面模块
+        from src.requirement_tracker.ado_browser import show_ado_browser
+        show_ado_browser()
 
 def show_main_page():
     st.title("📋 Requirement Tracker")
