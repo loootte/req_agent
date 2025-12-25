@@ -439,7 +439,7 @@ def get_confluence_pages(space_key: str, max_results: int = 100) -> list:
                 'id': page.get('id', ''),
                 'title': page.get('title', ''),
                 'space': page.get('space', {}).get('key', space_key),
-                'url': f"{CONFLUENCE_URL}{page.get('_links', {}).get('webui', f'/spaces/{space_key}/pages/{page.get('id', '')}') if page.get('_links') else f'/spaces/{space_key}/pages/{page.get('id', '')}'}",
+                'url': f"{CONFLUENCE_URL}{page.get('_links', {}).get('webui', f'/spaces/{space_key}/pages/{page.get("id", "")}') if page.get('_links') else f'/spaces/{space_key}/pages/{page.get("id", "")}'}",
                 'content': page.get('body', {}).get('storage', {}).get('value', '') if page.get('body', {}).get('storage') else '',
                 'version': page.get('version', {}).get('number', 0) if page.get('version') else 0,
                 'created_date': page.get('history', {}).get('createdDate', '') if page.get('history') else '',

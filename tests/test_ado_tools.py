@@ -692,13 +692,14 @@ class TestGetAdoWorkItemsWithArea:
                     where_clause += f" AND [System.AreaPath] = '{area_path.replace("'", "''")}'"
                 
                 # 查询工作项的WIQL查询
-                wiql_query = Wiql(
-                    query=f"""
+                query_str = f"""
                     SELECT [System.Id], [System.Title], [System.State], [System.WorkItemType], [System.AssignedTo], [System.AreaPath], [System.Description]
                     FROM WorkItems
                     WHERE {where_clause}
                     ORDER BY [System.Id] DESC
                     """
+                wiql_query = Wiql(
+                    query=query_str
                 )
                 
                 # 执行查询
