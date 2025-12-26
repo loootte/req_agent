@@ -43,9 +43,6 @@ class ConfigManager:
         merged_llms = default_llms.copy()
         merged_llms.update(self.custom_llms)
         
-        # 保存自定义LLM配置到LLM_CONFIG环境变量
-        save_custom_llms(merged_llms)
-        
         configs_to_save = {
             "SELECTED_MODEL": selected_model,
         }
