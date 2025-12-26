@@ -57,14 +57,27 @@ def create_ado_feature(summary: str, description: str, problem_statement: str = 
     connection = get_ado_connection()
     wit_client = connection.clients.get_work_item_tracking_client()
 
+    # 构建补丁操作，仅使用ADO中实际存在的字段
     patch = [
         JsonPatchOperation(op="add", path="/fields/System.Title", value=summary),
-        JsonPatchOperation(op="add", path="/fields/System.Description", value=description),
-        JsonPatchOperation(op="add", path="/fields/System.ProblemStatement", value=problem_statement),
-        JsonPatchOperation(op="add", path="/fields/System.AcceptanceCriteria", value=acceptance_criteria),
-        JsonPatchOperation(op="add", path="/fields/System.WorkItemType", value=ADO_FEATURE_TYPE),
-        JsonPatchOperation(op="add", path="/fields/System.AreaPath", value="Move and Sell\\01. Move and Sell Portfolio\\Iron Ore Product Group\\Portside IMS")
     ]
+    
+    # 组合描述信息，将problem_statement合并到description中（如果problem_statement不为空）
+    combined_description = description
+    if problem_statement:
+        combined_description = f"{description}\n\nProblem Statement:\n{problem_statement}"
+    
+    patch.append(JsonPatchOperation(op="add", path="/fields/System.Description", value=combined_description))
+    
+    # 只有当acceptance_criteria不为空时才添加
+    if acceptance_criteria:
+        patch.append(JsonPatchOperation(op="add", path="/fields/System.AcceptanceCriteria", value=acceptance_criteria))
+    
+    # 添加工作项类型和区域路径
+    patch.append(JsonPatchOperation(op="add", path="/fields/System.WorkItemType", value=ADO_FEATURE_TYPE))
+    patch.append(JsonPatchOperation(op="add", path="/fields/System.AreaPath", 
+                                  value="Move and Sell\\01. Move and Sell Portfolio\\Iron Ore Product Group\\Portside IMS"))
+
     work_item = wit_client.create_work_item(document=patch, project=ADO_PROJECT, type=ADO_FEATURE_TYPE)
     return str(work_item.id)
 
