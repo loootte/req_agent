@@ -12,7 +12,6 @@ from .config_utils import (
 
 
 class ConfigManager:
-    # ... 原类不变，覆盖已 100%
     def __init__(self):
         self.custom_llms = load_custom_llms()
         self.env_vars = load_env_vars()
@@ -76,11 +75,14 @@ class ConfigManager:
             llm_list.append(config)
         configs_to_save["LLM_CONFIG"] = json.dumps(llm_list, ensure_ascii=False)
         
+        # 同时调用save_custom_llms以保持向后兼容性
+        save_custom_llms(merged_llms)
+        
         save_env_vars(configs_to_save)
 
 
 def render_model_selector(manager: ConfigManager, st=st) -> str:
-    """纯 UI: 渲染默认模型选择，返回 selected_model"""  # 新函数，覆盖 lines 55-62
+    """纯 UI: 渲染默认模型选择，返回 selected_model"""
     st.header("🤖 默认模型选择")
     current_model = manager.get_default_model()
     options = list(manager.custom_llms.keys())
@@ -94,7 +96,7 @@ def render_model_selector(manager: ConfigManager, st=st) -> str:
 
 
 def render_llm_configs(manager: ConfigManager, selected_model: str, st=st) -> Dict:
-    """纯 UI: 渲染所有 LLM expander，返回 temp_custom_llms"""  # 覆盖 lines 80-234 的循环
+    """纯 UI: 渲染所有 LLM expander，返回 temp_custom_llms"""
     st.header("🔧 模型配置")
     temp_custom_llms = manager.custom_llms.copy()
     for key, llm_config in manager.custom_llms.items():
@@ -160,7 +162,7 @@ def render_llm_configs(manager: ConfigManager, selected_model: str, st=st) -> Di
 
 
 def handle_add_llm_form(manager: ConfigManager, selected_model: str, st=st) -> bool:
-    """纯 UI: 渲染添加表单，返回是否添加成功"""  # 覆盖 lines 80-234 的 form 部分
+    """纯 UI: 渲染添加表单，返回是否添加成功"""
     st.header("➕ 添加自定义LLM")
     with st.form("new_custom_llm"):
         new_key = st.text_input("唯一标识符 (例如: my-custom-model)")

@@ -53,13 +53,19 @@ def save_env_vars(configs: Dict[str, str], env_path: Path = DEFAULT_ENV_PATH) ->
     # 读取现有的文件内容
     if env_path.exists():
         # 读取原始文件内容，以保留格式和注释
+        content = None
         for enc in FALLBACK_ENCODINGS + ['utf-8']:
             try:
                 with open(env_path, 'r', encoding=enc) as f:
-                    lines = f.readlines()
+                    content = f.read()
                 break
             except UnicodeDecodeError:
                 continue
+        
+        if content is not None:
+            lines = content.splitlines(keepends=True)  # 保持行尾换行符
+        else:
+            lines = []
     else:
         lines = []
     
@@ -81,8 +87,8 @@ def save_env_vars(configs: Dict[str, str], env_path: Path = DEFAULT_ENV_PATH) ->
                     if value is not None:
                         # 特殊处理LLM_CONFIG，确保它在一行内并且正确转义
                         if key == "LLM_CONFIG":
-                            escaped_value = json.dumps(json.loads(value), ensure_ascii=False)
-                            f.write(f'{key}={escaped_value}\n')
+                            # 直接使用传入的值，不进行额外转义
+                            f.write(f'{key}={value}\n')
                         # 处理包含特殊字符的值
                         elif ' ' in str(value) or '\n' in str(value) or '#' in str(value) or '=' in str(value):
                             # 转义引号
@@ -93,19 +99,32 @@ def save_env_vars(configs: Dict[str, str], env_path: Path = DEFAULT_ENV_PATH) ->
                     else:
                         f.write(f'{key}=\n')
                 else:
-                    f.write(line)  # 保留原始行
+                    # 对于未更新的变量行，确保它们以换行符结尾
+                    if not line.endswith('\n'):
+                        f.write(line + '\n')
+                    else:
+                        f.write(line)  # 保留原始行
             else:
                 f.write(line)  # 保留注释和空行
         
         # 添加新变量（如果存在但原文件中没有）
         for key, value in configs.items():
-            if key not in [line.split('=', 1)[0] if '=' in line and not line.strip().startswith('#') else None 
-                         for line in lines if line.strip()]:
+            # 检查变量是否在原文件中存在
+            key_exists = False
+            for line in lines:
+                line_stripped = line.strip()
+                if line_stripped and not line_stripped.startswith('#') and '=' in line_stripped:
+                    file_key = line_stripped.split('=', 1)[0]
+                    if file_key == key:
+                        key_exists = True
+                        break
+            
+            if not key_exists:
                 if value is not None:
                     # 特殊处理LLM_CONFIG，确保它在一行内并且正确转义
                     if key == "LLM_CONFIG":
-                        escaped_value = json.dumps(json.loads(value), ensure_ascii=False)
-                        f.write(f'{key}={escaped_value}\n')
+                        # 直接使用传入的值，不进行额外转义
+                        f.write(f'{key}={value}\n')
                     # 处理包含特殊字符的值
                     elif ' ' in str(value) or '\n' in str(value) or '#' in str(value) or '=' in str(value):
                         # 转义引号
