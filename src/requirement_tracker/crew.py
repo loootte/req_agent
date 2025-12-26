@@ -10,7 +10,7 @@ from typing import Dict, Any, Optional
 load_dotenv()
 
 from .agents import create_analyzer, create_publisher
-from .tasks import task1, task2  # 如果你也拆了tasks.py
+from .tasks import generation_task, create_feature  # 如果你也拆了tasks.py
 
 def load_env_vars():
     """加载环境变量"""

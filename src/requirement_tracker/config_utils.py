@@ -49,41 +49,91 @@ def load_env_vars(env_path: Path = DEFAULT_ENV_PATH) -> Dict[str, str]:
 
 
 def save_env_vars(configs: Dict[str, str], env_path: Path = DEFAULT_ENV_PATH) -> None:
-    """保存环境变量到.env文件"""
-    # 读取现有的环境变量
-    existing_vars = load_env_vars(env_path)
-    
-    # 处理编码问题
+    """保存环境变量到.env文件，只更新configs中指定的变量"""
+    # 读取现有的文件内容
     if env_path.exists():
-        for enc in FALLBACK_ENCODINGS:
+        # 读取原始文件内容，以保留格式和注释
+        content = None
+        for enc in FALLBACK_ENCODINGS + ['utf-8']:
             try:
                 with open(env_path, 'r', encoding=enc) as f:
-                    lines = f.readlines()
-                existing_vars.update(_parse_existing_vars(lines))
+                    content = f.read()
                 break
-            except:
-                pass
-
-    # 更新配置
+            except UnicodeDecodeError:
+                continue
+        
+        if content is not None:
+            lines = content.splitlines(keepends=True)  # 保持行尾换行符
+        else:
+            lines = []
+    else:
+        lines = []
+    
+    # 解析现有变量，但保留原始行
+    existing_vars = _parse_existing_vars(lines)
+    
+    # 更新要保存的配置
     existing_vars.update(configs)
-
-    # 写入文件（始终使用UTF-8编码）
+    
+    # 写入文件（始终使用UTF-8编码），只更新指定的变量
     with open(env_path, 'w', encoding='utf-8') as f:
-        for key, value in existing_vars.items():
-            if value is not None:
-                # 特殊处理LLM_CONFIG，确保它在一行内并且正确转义
-                if key == "LLM_CONFIG":
-                    escaped_value = json.dumps(json.loads(value), ensure_ascii=False)
-                    f.write(f'{key}={escaped_value}\n')
-                # 处理包含特殊字符的值
-                elif ' ' in str(value) or '\n' in str(value) or '#' in str(value) or '=' in str(value):
-                    # 转义引号
-                    escaped_value = str(value).replace('"', '\\"')
-                    f.write(f'{key}="{escaped_value}"\n')
+        # 遍历原始行，更新指定的变量
+        for line in lines:
+            line_stripped = line.strip()
+            if line_stripped and not line_stripped.startswith('#') and '=' in line_stripped:
+                key = line_stripped.split('=', 1)[0]
+                if key in configs:
+                    value = configs[key]
+                    if value is not None:
+                        # 特殊处理LLM_CONFIG，确保它在一行内并且正确转义
+                        if key == "LLM_CONFIG":
+                            # 直接使用传入的值，不进行额外转义
+                            f.write(f'{key}={value}\n')
+                        # 处理包含特殊字符的值
+                        elif ' ' in str(value) or '\n' in str(value) or '#' in str(value) or '=' in str(value):
+                            # 转义引号
+                            escaped_value = str(value).replace('"', '\\"')
+                            f.write(f'{key}="{escaped_value}"\n')
+                        else:
+                            f.write(f'{key}={value}\n')
+                    else:
+                        f.write(f'{key}=\n')
                 else:
-                    f.write(f'{key}={value}\n')
+                    # 对于未更新的变量行，确保它们以换行符结尾
+                    if not line.endswith('\n'):
+                        f.write(line + '\n')
+                    else:
+                        f.write(line)  # 保留原始行
             else:
-                f.write(f'{key}=\n')
+                f.write(line)  # 保留注释和空行
+        
+        # 添加新变量（如果存在但原文件中没有）
+        for key, value in configs.items():
+            # 检查变量是否在原文件中存在
+            key_exists = False
+            for line in lines:
+                line_stripped = line.strip()
+                if line_stripped and not line_stripped.startswith('#') and '=' in line_stripped:
+                    file_key = line_stripped.split('=', 1)[0]
+                    if file_key == key:
+                        key_exists = True
+                        break
+            
+            if not key_exists:
+                if value is not None:
+                    # 特殊处理LLM_CONFIG，确保它在一行内并且正确转义
+                    if key == "LLM_CONFIG":
+                        # 直接使用传入的值，不进行额外转义
+                        f.write(f'{key}={value}\n')
+                    # 处理包含特殊字符的值
+                    elif ' ' in str(value) or '\n' in str(value) or '#' in str(value) or '=' in str(value):
+                        # 转义引号
+                        escaped_value = str(value).replace('"', '\\"')
+                        f.write(f'{key}="{escaped_value}"\n')
+                    else:
+                        f.write(f'{key}={value}\n')
+                else:
+                    f.write(f'{key}=\n')
 
 
 def load_custom_llms() -> Dict[str, dict]:

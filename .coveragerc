@@ -1,6 +1,10 @@
 [run]
 source = src
 branch = True
+omit = 
+    */ado_browser.py
+    */confluence_browser.py
+    */webapp.py
 
 [report]
 show_missing = True

@@ -57,3 +57,10 @@ dev = [
 "pytest-cov>=4.0,<5.0",
 "coverage>=7.0,<8.0"
 ]
+
+[tool.pytest.ini_options]
+markers = [
+    "e2e: End-to-end tests that require external services and should be excluded from CI pipeline",
+    "integration: Integration tests",
+    "unit: Unit tests"
+]

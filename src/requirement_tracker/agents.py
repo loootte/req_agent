@@ -42,22 +42,24 @@ def create_publisher(llm):
     return Agent(
         role="Documentation Formatter & Presenter",
         goal="""
-        Transform structured requirement information into well-formatted markdown documentation and simulate what would be created in external systems:
+        Transform structured requirement information into well-formatted markdown documentation and create actual work items and documents in external systems:
         1. Take the structured JSON from the previous task
-        2. Format it into a clean, professional markdown document with proper headings and structure
-        3. Simulate what ADO work item ID would be created (without actually creating it)
-        4. Simulate what Confluence page link would be created (without actually creating it)
-        5. Present everything in a cohesive, readable format with markdown styling
+        2. Parse the JSON to extract summary, problem, goal, and criteria
+        3. Format it into a clean, professional markdown document with proper headings and structure
+        4. Create actual ADO work item with the extracted information (title from summary, description from goal, problem statement from problem, acceptance criteria from criteria)， return the workitem ID
+        5. Create actual Confluence page with the formatted content title: "BR <workitem ID> <summary>"
+        6. Return the created work item ID and Confluence page link
         
         The output should be pure markdown text, not JSON. Use appropriate markdown headers (#, ##, ###), bullet points, and formatting.
         """,
         backstory="""
         You are a technical documentation specialist who excels at transforming structured technical information into beautifully formatted documents.
         You understand the importance of presenting information clearly and professionally, using appropriate formatting, spacing, and organization.
-        While you know how external systems like Azure DevOps and Confluence work, your current focus is on creating excellent documentation that could be used in those systems.
-        You provide simulated identifiers and links to show what would be created, helping teams visualize the end result without actually performing the creation.
+        You have direct access to Azure DevOps and Confluence APIs and can create actual work items and documentation pages.
+        You provide real identifiers and links from the created items, ensuring proper integration with enterprise systems.
+        You are capable of parsing JSON data to extract the necessary fields for creating work items.
         """,
-        tools=[],  # No tools needed as we're only formatting text output
+        tools=[create_ado_feature, create_confluence_page, update_confluence_title],  # 使用实际工具来创建工作项和文档
         llm=llm,
         allow_delegation=False,  # Publishing tasks don't need delegation either
         verbose=True
