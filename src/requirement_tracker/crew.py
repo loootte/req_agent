@@ -189,8 +189,7 @@ def create_task2_instance(description, expected_output, agent):
     return Task(
         description=description,
         expected_output=expected_output,
-        agent=agent,
-        output_json=dict  # 确保任务2能够处理JSON输出
+        agent=agent
     )
 
 def run_crew(input_text: str, model_type: str = "qwen", env_vars: Optional[Dict[str, str]] = None) -> str:
