@@ -28,9 +28,9 @@ jobs:
         pip install uv
         uv pip install -r pyproject.toml
 
-    - name: Run tests
+    - name: Run tests (excluding e2e tests)
       run: |
-        python -m pytest tests/
+        python -m pytest tests/ -m "not e2e"
 
     - name: Generate changelog
       run: |

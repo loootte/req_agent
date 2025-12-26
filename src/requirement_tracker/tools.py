@@ -527,3 +527,75 @@ def format_doc(problem: str, goal: str, artifacts: str, criteria: str, risks: st
     return f"""
     <h1>Problem Statement</h1><p>{problem}</p>
 """
+
+# Tool 9: 删除Confluence页面
+@tool("Delete Confluence Page")
+def delete_confluence_page(page_id: str) -> str:
+    """删除指定的Confluence页面"""
+    try:
+        from atlassian import Confluence
+    except ImportError as e:
+        raise ImportError(
+            "Missing Confluence dependencies for delete_confluence_page. Install with: pip install req_agent[confluence]"
+        ) from e
+
+    try:
+        # 使用用户名和API token进行认证
+        confluence = Confluence(
+            url=CONFLUENCE_URL,
+            username=CONFLUENCE_USER,  # 用户邮箱
+            password=CONFLUENCE_TOKEN  # API Token
+        )
+        
+        # 删除页面
+        confluence.remove_page(page_id=page_id)
+        return f"页面 {page_id} 删除成功"
+    except Exception as e:
+        raise Exception(f"删除页面 {page_id} 失败: {str(e)}")
+
+
+# Tool 10: 删除ADO工作项（如果支持）
+@tool("Delete ADO Work Item")
+def delete_ado_workitem(workitem_id: str) -> str:
+    """删除指定的ADO工作项"""
+    try:
+        from msrest.authentication import BasicAuthentication
+        from azure.devops.connection import Connection
+        from azure.devops.exceptions import AzureDevOpsServiceError
+    except ImportError as e:
+        raise ImportError(
+            "Missing Azure DevOps dependencies for delete_ado_workitem. Install with: pip install req_agent[azure]"
+        ) from e
+
+    try:
+        connection = get_ado_connection()
+        wit_client = connection.clients.get_work_item_tracking_client()
+        
+        # 注意：ADO通常不允许直接删除工作项，而是将其状态设置为"已删除"或"已关闭"
+        # 这里我们尝试删除工作项（如果ADO配置允许）
+        response = wit_client.delete_work_item(
+            id=int(workitem_id),
+            project=ADO_PROJECT
+        )
+        
+        return f"工作项 {workitem_id} 删除成功"
+    except AzureDevOpsServiceError as e:
+        # 如果直接删除失败，尝试更新工作项状态为"已删除"
+        try:
+            wit_client = connection.clients.get_work_item_tracking_client()
+            
+            from azure.devops.v7_1.work_item_tracking.models import JsonPatchOperation
+            patch = [
+                JsonPatchOperation(op="add", path="/fields/System.State", value="Removed")
+            ]
+            
+            wit_client.update_work_item(
+                document=patch,
+                id=int(workitem_id)
+            )
+            
+            return f"工作项 {workitem_id} 状态更新为已移除"
+        except Exception as update_error:
+            raise Exception(f"删除/更新工作项 {workitem_id} 失败: {str(update_error)}")
+    except Exception as e:
+        raise Exception(f"删除工作项 {workitem_id} 失败: {str(e)}")
