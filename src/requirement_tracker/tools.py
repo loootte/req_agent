@@ -43,7 +43,7 @@ def get_ado_connection():
 
 # Tool 1: 在ADO创建Feature
 @tool("Create ADO Feature")
-def create_ado_feature(summary: str, description: str) -> str:
+def create_ado_feature(summary: str, description: str, problem_statement: str = "", acceptance_criteria: str = "") -> str:
     """在Azure DevOps创建Feature并返回ID"""
     try:
         from msrest.authentication import BasicAuthentication
@@ -60,7 +60,10 @@ def create_ado_feature(summary: str, description: str) -> str:
     patch = [
         JsonPatchOperation(op="add", path="/fields/System.Title", value=summary),
         JsonPatchOperation(op="add", path="/fields/System.Description", value=description),
-        # 加其他字段如 Acceptance Criteria 等
+        JsonPatchOperation(op="add", path="/fields/System.ProblemStatement", value=problem_statement),
+        JsonPatchOperation(op="add", path="/fields/System.AcceptanceCriteria", value=acceptance_criteria),
+        JsonPatchOperation(op="add", path="/fields/System.WorkItemType", value=ADO_FEATURE_TYPE),
+        JsonPatchOperation(op="add", path="/fields/System.AreaPath", value="Move and Sell\\01. Move and Sell Portfolio\\Iron Ore Product Group\\Portside IMS")
     ]
     work_item = wit_client.create_work_item(document=patch, project=ADO_PROJECT, type=ADO_FEATURE_TYPE)
     return str(work_item.id)

@@ -10,7 +10,7 @@ from typing import Dict, Any, Optional
 load_dotenv()
 
 from .agents import create_analyzer, create_publisher
-from .tasks import task1, task2  # 如果你也拆了tasks.py
+from .tasks import generation_task, create_feature  # 如果你也拆了tasks.py
 
 def load_env_vars():
     """加载环境变量"""
@@ -189,7 +189,8 @@ def create_task2_instance(description, expected_output, agent):
     return Task(
         description=description,
         expected_output=expected_output,
-        agent=agent
+        agent=agent,
+        output_json=dict  # 确保任务2能够处理JSON输出
     )
 
 def run_crew(input_text: str, model_type: str = "qwen", env_vars: Optional[Dict[str, str]] = None) -> str:

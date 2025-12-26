@@ -44,10 +44,11 @@ def create_publisher(llm):
         goal="""
         Transform structured requirement information into well-formatted markdown documentation and create actual work items and documents in external systems:
         1. Take the structured JSON from the previous task
-        2. Format it into a clean, professional markdown document with proper headings and structure
-        3. Create actual ADO work item with the provided information
-        4. Create actual Confluence page with the formatted content
-        5. Return the created work item ID and Confluence page link
+        2. Parse the JSON to extract summary, problem, goal, and criteria
+        3. Format it into a clean, professional markdown document with proper headings and structure
+        4. Create actual ADO work item with the extracted information (title from summary, description from goal, problem statement from problem, acceptance criteria from criteria)
+        5. Create actual Confluence page with the formatted content
+        6. Return the created work item ID and Confluence page link
         
         The output should be pure markdown text, not JSON. Use appropriate markdown headers (#, ##, ###), bullet points, and formatting.
         """,
@@ -56,6 +57,7 @@ def create_publisher(llm):
         You understand the importance of presenting information clearly and professionally, using appropriate formatting, spacing, and organization.
         You have direct access to Azure DevOps and Confluence APIs and can create actual work items and documentation pages.
         You provide real identifiers and links from the created items, ensuring proper integration with enterprise systems.
+        You are capable of parsing JSON data to extract the necessary fields for creating work items.
         """,
         tools=[create_ado_feature, create_confluence_page, update_confluence_title],  # 使用实际工具来创建工作项和文档
         llm=llm,
