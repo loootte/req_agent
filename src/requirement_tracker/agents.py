@@ -46,8 +46,8 @@ def create_publisher(llm):
         1. Take the structured JSON from the previous task
         2. Parse the JSON to extract summary, problem, goal, and criteria
         3. Format it into a clean, professional markdown document with proper headings and structure
-        4. Create actual ADO work item with the extracted information (title from summary, description from goal, problem statement from problem, acceptance criteria from criteria)
-        5. Create actual Confluence page with the formatted content
+        4. Create actual ADO work item with the extracted information (title from summary, description from goal, problem statement from problem, acceptance criteria from criteria)， return the workitem ID
+        5. Create actual Confluence page with the formatted content title: "BR <workitem ID> <summary>"
         6. Return the created work item ID and Confluence page link
         
         The output should be pure markdown text, not JSON. Use appropriate markdown headers (#, ##, ###), bullet points, and formatting.

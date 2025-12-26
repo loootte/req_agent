@@ -62,16 +62,15 @@ def create_ado_feature(summary: str, description: str, problem_statement: str = 
         JsonPatchOperation(op="add", path="/fields/System.Title", value=summary),
     ]
     
-    # 组合描述信息，将problem_statement合并到description中（如果problem_statement不为空）
-    combined_description = description
     if problem_statement:
-        combined_description = f"{description}\n\nProblem Statement:\n{problem_statement}"
-    
-    patch.append(JsonPatchOperation(op="add", path="/fields/System.Description", value=combined_description))
+        patch.append(JsonPatchOperation(op="add", path="/fields/Custom.Problem", value=problem_statement))
+
+    if description:
+        patch.append(JsonPatchOperation(op="add", path="/fields/System.Description", value=description))
     
     # 只有当acceptance_criteria不为空时才添加
     if acceptance_criteria:
-        patch.append(JsonPatchOperation(op="add", path="/fields/System.AcceptanceCriteria", value=acceptance_criteria))
+        patch.append(JsonPatchOperation(op="add", path="/fields/Custom.Acceptance", value=acceptance_criteria))
     
     # 添加工作项类型和区域路径
     patch.append(JsonPatchOperation(op="add", path="/fields/System.WorkItemType", value=ADO_FEATURE_TYPE))

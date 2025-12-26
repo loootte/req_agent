@@ -25,11 +25,11 @@ create_feature = Task(
     使用上一步JSON生成ADO的Feature，包含以下字段：
     - [System.Title]: "summary"的值
     - [System.Description]: "goal"的值
-    - [System.ProblemStatement]: "problem"的値
-    - [System.AcceptanceCriteria]: "criteria"の値
+    - [Custom.Problem]: "problem"的値
+    - [Custom.Acceptance]: "criteria"の値
     - [System.WorkItemType]: "Feature" 
     - [System.AreaPath]: "Move and Sell\\01. Move and Sell Portfolio\\Iron Ore Product Group\\Portside IMS"
-    并返回创建的ID和リンク。
+    并返回创建的ID和link。
     """,
     expected_output="格式化的テキスト、構造された要件ドキュメントと実際のADOワークアイテムIDおよびConfluenceページリンク",
     # agent将在运行時通過crew.py設定
